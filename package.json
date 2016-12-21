@@ -1,0 +1,15 @@
+{
+  "name": "aden",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "scripts": {
+    "start": "nodemon bot.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^10.0.1",
+    "nodemon": "^1.11.0"
+  }
+}
