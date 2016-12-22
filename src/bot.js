@@ -10,12 +10,23 @@ const onReceiveMessage = message => {
     return;
   }
   if (message.content.trim() === '/nba') {
-    actions.dispatchHelp(message);
+    actions.dispatch(actions.HELP, message);
     return;
   }
   const command = message.content.replace('/nba ', '');
-  console.log(command);
-  actions.dispatchScoresOrSchedules(message);
+  // For string-only commands
+  switch (command.toLowerCase().trim()) {
+    case 'standings':
+      actions.dispatch(actions.STANDINGS, message);
+      return;
+    case 'estandings':
+      actions.dispatch(actions.E_STANDINGS, message);
+      return;
+    case 'wstandings':
+      actions.dispatch(actions.W_STANDINGS, message);
+      return;
+  }
+  actions.dispatch(actions.SCORES_OR_SCHEDULES, message);
 };
 
 const onReady = () => {
