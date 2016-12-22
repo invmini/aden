@@ -17,34 +17,35 @@ const E_STANDINGS = 'E_STANDINGS';
 const W_STANDINGS = 'W_STANDINGS';
 const BOX_SCORE = 'BOX_SCORE';
 const TRICODE = 'TRICODE';
+const PLAYER = 'PLAYER';
 
 const dispatch = (actionName, message, gameId) => {
   switch (actionName) {
-    case HELP:
-      help(message);
-      break;
-    case ERROR:
-      error(message);
-      break;
-    case SCORES_OR_SCHEDULES:
-      scoresOrSchedules(message);
-      break;
-    case STANDINGS:
-      standings(message, false, false);
-      break;
-    case E_STANDINGS:
-      standings(message, true, false);
-      break;
-    case W_STANDINGS:
-      standings(message, false, true);
-      break;
-    case BOX_SCORE:
-      boxScore(message, gameId);
-      break;
-    case TRICODE:
-      tricode(message);
-    default:
-      break;
+  case HELP:
+    help(message);
+    break;
+  case ERROR:
+    error(message);
+    break;
+  case SCORES_OR_SCHEDULES:
+    scoresOrSchedules(message);
+    break;
+  case STANDINGS:
+    standings(message, false, false);
+    break;
+  case E_STANDINGS:
+    standings(message, true, false);
+    break;
+  case W_STANDINGS:
+    standings(message, false, true);
+    break;
+  case BOX_SCORE:
+    boxScore(message, gameId);
+    break;
+  case TRICODE:
+    tricode(message);
+  default:
+    break;
   }
 };
 
@@ -56,8 +57,10 @@ const error = message => {
 const help = message => {
   const helpMessage = `- **/nba [date]**\n\
 Display relevant NBA scores/schedules on a given date (YYYYMMDD) (e.g. /nba 20161031)\n\
-- **/nba [teams]**\n\
-Display stats of the chosen team (e.g. /nba GSW)
+- **/nba tricode**\n\
+Display tricode of all NBA teams
+- **/nba [tricode]**\n\
+Display upcoming matches of the chosen team (/nba gsw)
 - **/nba standings**\n\
 Display the current standings
 - **/nba estandings**\n\
@@ -178,7 +181,7 @@ const boxScore = (message, gameId) => {
     scores.setHeading('', '1', '2', '3', '4', 'Total');
     scores.addRow(teams[vTeamId].nickname, vTeam.linescore[0].score, vTeam.linescore[1].score, vTeam.linescore[2].score, vTeam.linescore[3].score, vTeam.score);
     scores.addRow(teams[hTeamId].nickname, hTeam.linescore[0].score, hTeam.linescore[1].score, hTeam.linescore[2].score, hTeam.linescore[3].score, hTeam.score);
-    message.channel.sendMessage(`\`\`\`${scores.toString()}\`\`\``)
+    message.channel.sendMessage(`\`\`\`${scores.toString()}\`\`\``);
     // Box Score
     const vTeamTable = new AsciiTable();
     const hTeamTable = new AsciiTable();
@@ -207,6 +210,10 @@ const tricode = (message) => {
   message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
 };
 
+const player = (message, personId) => {
+  let nbaLink = 'http://www.nba.com/players/';
+};
+
 module.exports = {
   dispatch,
   HELP,
@@ -217,4 +224,5 @@ module.exports = {
   W_STANDINGS,
   BOX_SCORE,
   TRICODE,
+  PLAYER,
 };

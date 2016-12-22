@@ -15,21 +15,23 @@ const onReceiveMessage = message => {
   const command = message.content.replace('/nba ', '').toLowerCase().trim();
   // For string-only commands
   switch (command) {
-    case 'standings':
-      actions.dispatch(actions.STANDINGS, message);
-      return;
-    case 'estandings':
-      actions.dispatch(actions.E_STANDINGS, message);
-      return;
-    case 'wstandings':
-      actions.dispatch(actions.W_STANDINGS, message);
-      return;
-    case 'tricode':
-      actions.dispatch(actions.TRICODE, message);
-      return;
+  case 'standings':
+    actions.dispatch(actions.STANDINGS, message);
+    return;
+  case 'estandings':
+    actions.dispatch(actions.E_STANDINGS, message);
+    return;
+  case 'wstandings':
+    actions.dispatch(actions.W_STANDINGS, message);
+    return;
+  case 'tricode':
+    actions.dispatch(actions.TRICODE, message);
+    return;
   }
   if (command.split(' ')[0] === 'bs' && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
     actions.dispatch(actions.BOX_SCORE, message, command.split(' ')[1]);
+  } else if (command.split(' ')[0] === 'player') {
+    actions.dispatch(actions.PLAYER, message, command.split(' ')[1]);
   } else {
     actions.dispatch(actions.SCORES_OR_SCHEDULES, message);
   }

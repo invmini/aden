@@ -4,153 +4,153 @@ module.exports = {
     '1610612737':{
       name:'Atlanta Hawks',
       nickname:'Hawks',
-      tricode:'ATL'
+      tricode:'ATL',
     },
     '1610612738':{
       name:'Boston Celtics',
       nickname:'Celtics',
-      tricode:'BOS'
+      tricode:'BOS',
     },
     '1610612739':{
       name:'Cleveland Cavaliers',
       nickname:'Cavaliers',
-      tricode:'CLE'
+      tricode:'CLE',
     },
     '1610612740':{
       name:'New Orleans Pelicans',
       nickname:'Pelicans',
-      tricode:'NOP'
+      tricode:'NOP',
     },
     '1610612741':{
       name:'Chicago Bulls',
       nickname:'Bulls',
-      tricode:'CHI'
+      tricode:'CHI',
     },
     '1610612742':{
       name:'Dallas Mavericks',
       nickname:'Mavericks',
-      tricode:'DAL'
+      tricode:'DAL',
     },
     '1610612743':{
       name:'Denver Nuggets',
       nickname:'Nuggets',
-      tricode:'DEN'
+      tricode:'DEN',
     },
     '1610612744':{
       name:'Golden State Warriors',
       nickname:'Warriors',
-      tricode:'GSW'
+      tricode:'GSW',
     },
     '1610612745':{
       name:'Houston Rockets',
       nickname:'Rockets',
-      tricode:'HOU'
+      tricode:'HOU',
     },
     '1610612746':{
       name:'LA Clippers',
       nickname:'Clippers',
-      tricode:'LAC'
+      tricode:'LAC',
     },
     '1610612747':{
       name:'L.A. Lakers',
       nickname:'Lakers',
-      tricode:'LAL'
+      tricode:'LAL',
     },
     '1610612748':{
       name:'Miami Heat',
       nickname:'Heat',
-      tricode:'MIA'
+      tricode:'MIA',
     },
     '1610612749':{
       name:'Milwaukee Bucks',
       nickname:'Bucks',
-      tricode:'MIL'
+      tricode:'MIL',
     },
     '1610612750':{
       name:'Minnesota Timberwolves',
       nickname:'Timberwolves',
-      tricode:'MIN'
+      tricode:'MIN',
     },
     '1610612751':{
       name:'Brooklyn Nets',
       nickname:'Nets',
-      tricode:'BKN'
+      tricode:'BKN',
     },
     '1610612752':{
       name:'New York Knicks',
       nickname:'Knicks',
-      tricode:'NYK'
+      tricode:'NYK',
     },
     '1610612753':{
       name:'Orlando Magic',
       nickname:'Magic',
-      tricode:'ORL'
+      tricode:'ORL',
     },
     '1610612754':{
       name:'Indiana Pacers',
       nickname:'Pacers',
-      tricode:'IND'
+      tricode:'IND',
     },
     '1610612755':{
       name:'Philadelphia 76ers',
       nickname:'76ers',
-      tricode:'PHI'
+      tricode:'PHI',
     },
     '1610612756':{
       name:'Phoenix Suns',
       nickname:'Suns',
-      tricode:'PHX'
+      tricode:'PHX',
     },
     '1610612757':{
       name:'Portland Trail Blazers',
       nickname:'Trail Blazers',
-      tricode:'POR'
+      tricode:'POR',
     },
     '1610612758':{
       name:'Sacramento Kings',
       nickname:'Kings',
-      tricode:'SAC'
+      tricode:'SAC',
     },
     '1610612759':{
       name:'San Antonio Spurs',
       nickname:'Spurs',
-      tricode:'SAS'
+      tricode:'SAS',
     },
     '1610612760':{
       name:'Oklahoma City Thunder',
       nickname:'Thunder',
-      tricode:'OKC'
+      tricode:'OKC',
     },
     '1610612761':{
       name:'Toronto Raptors',
       nickname:'Raptors',
-      tricode:'TOR'
+      tricode:'TOR',
     },
     '1610612762':{
       name:'Utah Jazz',
       nickname:'Jazz',
-      tricode:'UTA'
+      tricode:'UTA',
     },
     '1610612763':{
       name:'Memphis Grizzlies',
       nickname:'Grizzlies',
-      tricode:'MEM'
+      tricode:'MEM',
     },
     '1610612764':{
       name:'Washington Wizards',
       nickname:'Wizards',
-      tricode:'WAS'
+      tricode:'WAS',
     },
     '1610612765':{
       name:'Detroit Pistons',
       nickname:'Pistons',
-      tricode:'DET'
+      tricode:'DET',
     },
     '1610612766':{
       name:'Charlotte Hornets',
       nickname:'Hornets',
-      tricode:'CHA'
-    }
+      tricode:'CHA',
+    },
   },
   players:
   {
@@ -603,7 +603,7 @@ module.exports = {
     '1627854': 'Bryn Forbes',
     '1627863': 'Danuel House',
     '1627879': 'Nicolas Laprovittola',
-    '1627884': 'Jr., Derrick Jones'
+    '1627884': 'Jr., Derrick Jones',
   },
   schedules: {
     '0011600001': '20161001',
@@ -1937,6 +1937,6 @@ module.exports = {
     '0021601227': '20170412',
     '0021601228': '20170412',
     '0021601229': '20170412',
-    '0021601230': '20170412'
-  }
+    '0021601230': '20170412',
+  },
 };
