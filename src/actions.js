@@ -59,13 +59,15 @@ Display the box score of the chosen game`;
 }
 
 const scoresOrSchedules = message => {
-  let date = message.content.substring(5);
+  let date = message.content.substring(5).trim();
+  let liveFlag = false;
   if (!moment(date).isValid()) {
-    if (message.content.substring(5) === 'today') {
+    if (date === 'today' || date === 'live') {
+      liveFlag = date === 'live'
       date = moment().format('YYYYMMDD');
-    } else if (message.content.substring(5) === 'tomorrow') {
+    } else if (date === 'tomorrow') {
       date = moment().add({day:1}).format('YYYYMMDD');
-    } else if (message.content.substring(5) === 'yesterday') {
+    } else if (date === 'yesterday') {
       date = moment().subtract({day:1}).format('YYYYMMDD');
     } else {
       error(message);
@@ -77,12 +79,27 @@ const scoresOrSchedules = message => {
     const table = new AsciiTable();
     // Go through each game for that date
     _.each(res.data.games, game => {
+      if (liveFlag && !game.isGameActivated) {
+        return;
+      }
       table.clear();
-      let title = game.gameId;
-      if ((game.hTeam.score !== '0' || game.vTeam.score !== '0') && !game.isGameActivated) {
-        title += ' - Finished';
+      let title = '';
+      if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
+        title = 'Finished';
       } else if (game.isGameActivated) {
-        title += ' - Live'
+        title = 'Live - ';
+        if (game.period.current <= 4) {
+          if (game.period.isHalftime) {
+            title += `Halftime`;
+          } else if (game.period.isEndOfPeriod) {
+            title += `End of Q${game.period.current}`;
+          } else {
+            title += `Q${game.period.current} ${game.clock}`;
+          }
+
+        } else {
+          title += `OT${game.period.current - 4} ${game.clock}`;
+        }
       }
       table.setTitle(title);
       table.setAlign(1, AsciiTable.RIGHT);
