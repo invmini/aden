@@ -6,8 +6,8 @@ nba.data.teams({
   const temp = {};
   _.each(res.league.standard, team => {
     if (team.isNBAFranchise) {
-      temp[team.teamId] = { name: team.fullName, shortName: team.nickname,tricode: team.tricode }
+      temp[team.teamId] = { name: team.fullName, shortName: team.nickname,tricode: team.tricode };
     }
   });
   console.log(temp);
-})
+});

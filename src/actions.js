@@ -8,15 +8,20 @@ const AsciiTable = require('ascii-table');
 const BASE_URL = 'http://data.nba.net/data/10s/prod/v1';
 
 const HELP = 'HELP';
+const ERROR = 'ERROR';
 const SCORES_OR_SCHEDULES = 'SCORES_OR_SCHEDULES';
 const STANDINGS = 'STANDINGS';
 const E_STANDINGS = 'E_STANDINGS';
 const W_STANDINGS = 'W_STANDINGS';
+const BOX_SCORE = 'BOX_SCORE';
 
-const dispatch = (actionName, message) => {
+const dispatch = (actionName, message, gameId) => {
   switch (actionName) {
     case HELP:
       help(message);
+      break;
+    case ERROR:
+      error(message);
       break;
     case SCORES_OR_SCHEDULES:
       scoresOrSchedules(message);
@@ -30,10 +35,13 @@ const dispatch = (actionName, message) => {
     case W_STANDINGS:
       standings(message, false, true);
       break;
+    case BOX_SCORE:
+      boxScore(message, message, gameId);
+      break;
     default:
       break;
   }
-}
+};
 
 const error = message => {
   const errorMessage = 'Invalid parameters/commands\nType /nba to view all commands';
@@ -56,14 +64,14 @@ Display the current stats of the chosen player
 - **/nba bs [game id]**\n\
 Display the box score of the chosen game`;
   message.channel.sendMessage(helpMessage);
-}
+};
 
 const scoresOrSchedules = message => {
   let date = message.content.substring(5).trim();
   let liveFlag = false;
   if (!moment(date).isValid()) {
     if (date === 'today' || date === 'live') {
-      liveFlag = date === 'live'
+      liveFlag = date === 'live';
       date = moment().format('YYYYMMDD');
     } else if (date === 'tomorrow') {
       date = moment().add({day:1}).format('YYYYMMDD');
@@ -83,6 +91,7 @@ const scoresOrSchedules = message => {
         return;
       }
       table.clear();
+      // Title logic
       let title = '';
       if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
         title = 'Finished';
@@ -100,6 +109,8 @@ const scoresOrSchedules = message => {
         } else {
           title += `OT${game.period.current - 4} ${game.clock}`;
         }
+      } else {
+        title += `Starting ${moment(game.startTimeUTC).fromNow()}`;
       }
       table.setTitle(title);
       table.setAlign(1, AsciiTable.RIGHT);
@@ -108,9 +119,14 @@ const scoresOrSchedules = message => {
         table.addRow(`${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)`, game.vTeam.score);
       } else {
         table.setAlign(0, AsciiTable.CENTER);
-        table.addRow(`${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)`);
+        table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `);
         table.addRow('V.S.');
-        table.addRow(`${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)`);
+        table.addRow(`  ${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)  `);
+      }
+      // Split messages if it will exceed 2000 character
+      if (summary.length + table.toString().length >= 2000) {
+        message.channel.sendMessage(`\`\`\`${summary}\`\`\``);
+        summary = '';
       }
       summary += table.toString() + '\n';
     });
@@ -122,7 +138,7 @@ const scoresOrSchedules = message => {
 
 const standings = (message, isEast, isWest) => {
   let url = '';
-  let title = ''
+  let title = '';
   if (isEast || isWest) {
     url = 'standings_conference';
     title = isEast ? 'Eastern ' : 'Western ';
@@ -141,16 +157,21 @@ const standings = (message, isEast, isWest) => {
     _.each(teamsArr, (team, i) => {
       const streak = team.isWinStreak ? 'W' : 'L';
       table.addRow(i + 1, teams[team.teamId].nickname, team.win, team.loss, team.winPct, `${team.lastTenWin}-${team.lastTenLoss}`, `${streak}${team.streak}`);
-    })
+    });
     message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
-  })
-}
+  });
+};
+
+const boxScore = (message, gameId) => {
+};
 
 module.exports = {
   dispatch,
   HELP,
+  ERROR,
   SCORES_OR_SCHEDULES,
   STANDINGS,
   E_STANDINGS,
   W_STANDINGS,
+  BOX_SCORE,
 };

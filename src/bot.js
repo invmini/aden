@@ -1,7 +1,6 @@
 const Discord = require('discord.js');
 const moment = require('moment');
 const actions = require('./actions');
-const teams = require('./constants').teams
 
 const client = new Discord.Client();
 
@@ -13,9 +12,9 @@ const onReceiveMessage = message => {
     actions.dispatch(actions.HELP, message);
     return;
   }
-  const command = message.content.replace('/nba ', '');
+  const command = message.content.replace('/nba ', '').toLowerCase().trim();
   // For string-only commands
-  switch (command.toLowerCase().trim()) {
+  switch (command) {
     case 'standings':
       actions.dispatch(actions.STANDINGS, message);
       return;
@@ -26,7 +25,11 @@ const onReceiveMessage = message => {
       actions.dispatch(actions.W_STANDINGS, message);
       return;
   }
-  actions.dispatch(actions.SCORES_OR_SCHEDULES, message);
+  if (command.split(' ')[0] === 'bs' && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
+    actions.dispatch(actions.BOX_SCORE, message, command.split(' ')[1]);
+  } else {
+    actions.dispatch(actions.SCORES_OR_SCHEDULES, message);
+  }
 };
 
 const onReady = () => {
