@@ -3,6 +3,8 @@ const _   = require('lodash');
 const moment = require('moment');
 const axios = require('axios');
 const teams = require('./constants').teams;
+const schedules = require('./constants').schedules;
+const players = require('./constants').players;
 const AsciiTable = require('ascii-table');
 
 const BASE_URL = 'http://data.nba.net/data/10s/prod/v1';
@@ -14,6 +16,7 @@ const STANDINGS = 'STANDINGS';
 const E_STANDINGS = 'E_STANDINGS';
 const W_STANDINGS = 'W_STANDINGS';
 const BOX_SCORE = 'BOX_SCORE';
+const TRICODE = 'TRICODE';
 
 const dispatch = (actionName, message, gameId) => {
   switch (actionName) {
@@ -36,8 +39,10 @@ const dispatch = (actionName, message, gameId) => {
       standings(message, false, true);
       break;
     case BOX_SCORE:
-      boxScore(message, message, gameId);
+      boxScore(message, gameId);
       break;
+    case TRICODE:
+      tricode(message);
     default:
       break;
   }
@@ -94,7 +99,7 @@ const scoresOrSchedules = message => {
       // Title logic
       let title = '';
       if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
-        title = 'Finished';
+        title = `Finished\n${game.gameId}`;
       } else if (game.isGameActivated) {
         title = 'Live - ';
         if (game.period.current <= 4) {
@@ -123,7 +128,7 @@ const scoresOrSchedules = message => {
         table.addRow('V.S.');
         table.addRow(`  ${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)  `);
       }
-      // Split messages if it will exceed 2000 character
+      // Split messages once it exceeds 2000 characters
       if (summary.length + table.toString().length >= 2000) {
         message.channel.sendMessage(`\`\`\`${summary}\`\`\``);
         summary = '';
@@ -163,6 +168,43 @@ const standings = (message, isEast, isWest) => {
 };
 
 const boxScore = (message, gameId) => {
+  axios.get(`${BASE_URL}/${schedules[gameId]}/${gameId}_boxscore.json`).then(res => {
+    const vTeam = res.data.basicGameData.vTeam;
+    const hTeam = res.data.basicGameData.hTeam;
+    const vTeamId = vTeam.teamId;
+    const hTeamId = hTeam.teamId;
+    // Quarter Score (Assume no OT for now)
+    const scores = new AsciiTable();
+    scores.setHeading('', '1', '2', '3', '4', 'Total');
+    scores.addRow(teams[vTeamId].nickname, vTeam.linescore[0].score, vTeam.linescore[1].score, vTeam.linescore[2].score, vTeam.linescore[3].score, vTeam.score);
+    scores.addRow(teams[hTeamId].nickname, hTeam.linescore[0].score, hTeam.linescore[1].score, hTeam.linescore[2].score, hTeam.linescore[3].score, hTeam.score);
+    message.channel.sendMessage(`\`\`\`${scores.toString()}\`\`\``)
+    // Box Score
+    const vTeamTable = new AsciiTable();
+    const hTeamTable = new AsciiTable();
+    vTeamTable.setHeading('Player', 'MIN', 'PTS', 'REB', 'AST', 'BLK');
+    hTeamTable.setHeading('Player', 'MIN', 'PTS', 'REB', 'AST', 'BLK');
+    _.each(res.data.stats.activePlayers, player => {
+      if (player.teamId === vTeamId && player.points) {
+        vTeamTable.addRow(players[player.personId], player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
+      } else if (player.points) {
+        hTeamTable.addRow(players[player.personId], player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
+      }
+    });
+    message.channel.sendMessage(`\`\`\`${vTeamTable.toString()}\`\`\``);
+    message.channel.sendMessage(`\`\`\`${hTeamTable.toString()}\`\`\``);
+  }).catch(err => {
+    error(message);
+  });
+};
+
+const tricode = (message) => {
+  const table = new AsciiTable();
+  table.setHeading('Team', 'Tricode');
+  _.each(teams, team => {
+    table.addRow(team.name, team.tricode);
+  });
+  message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
 };
 
 module.exports = {
@@ -174,4 +216,5 @@ module.exports = {
   E_STANDINGS,
   W_STANDINGS,
   BOX_SCORE,
+  TRICODE,
 };

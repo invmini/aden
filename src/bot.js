@@ -24,6 +24,9 @@ const onReceiveMessage = message => {
     case 'wstandings':
       actions.dispatch(actions.W_STANDINGS, message);
       return;
+    case 'tricode':
+      actions.dispatch(actions.TRICODE, message);
+      return;
   }
   if (command.split(' ')[0] === 'bs' && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
     actions.dispatch(actions.BOX_SCORE, message, command.split(' ')[1]);
