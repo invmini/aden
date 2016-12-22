@@ -1,10 +1,17 @@
 const _ = require('lodash');
 const axios = require('axios');
 
-axios.get('https://gist.githubusercontent.com/kshvmdn/5946cf62a4081be2a6a23fa1cedbfba4/raw/42567a2a595ddb5a39086f72271f20d45741b33d/players.json').then(res => {
+axios.get('http://data.nba.net/data/10s/prod/v1/2016/players.json').then(res => {
   const data = {};
-  _.each (res.data, player => {
-    data[player.personId] = player.name;
+  _.each (res.data.league.standard, player => {
+    if (player.jersey && player.pos && player.teamId) {
+      data[player.personId] = {
+        name: `${player.firstName} ${player.lastName}`,
+        jersey: player.jersey,
+        position: player.pos,
+        teamId: player.teamId,
+      };
+    }
   });
   console.log(data);
 });

@@ -19,7 +19,7 @@ const BOX_SCORE = 'BOX_SCORE';
 const TRICODE = 'TRICODE';
 const PLAYER = 'PLAYER';
 
-const dispatch = (actionName, message, gameId) => {
+const dispatch = (actionName, message, args) => {
   switch (actionName) {
   case HELP:
     help(message);
@@ -40,10 +40,13 @@ const dispatch = (actionName, message, gameId) => {
     standings(message, false, true);
     break;
   case BOX_SCORE:
-    boxScore(message, gameId);
+    boxScore(message, args);
     break;
   case TRICODE:
     tricode(message);
+    break;
+  case PLAYER:
+    player(message, args);
   default:
     break;
   }
@@ -55,12 +58,15 @@ const error = message => {
 };
 
 const help = message => {
-  const helpMessage = `- **/nba [date]**\n\
+  const helpMessage = `- **/nba live**\n\
+Display the scores of current live games
+- **/nba [date]**\n\
 Display relevant NBA scores/schedules on a given date (YYYYMMDD) (e.g. /nba 20161031)\n\
+Alias: __/nba yesterday__, __/nba today__, __/nba tomorrow__\n\
 - **/nba tricode**\n\
 Display tricode of all NBA teams
 - **/nba [tricode]**\n\
-Display upcoming matches of the chosen team (/nba gsw)
+Display current roster and upcoming matches of the chosen team (/nba gsw)
 - **/nba standings**\n\
 Display the current standings
 - **/nba estandings**\n\
@@ -102,12 +108,12 @@ const scoresOrSchedules = message => {
       // Title logic
       let title = '';
       if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
-        title = `Finished\n${game.gameId}`;
+        title = `Finished - ${game.gameId}`;
       } else if (game.isGameActivated) {
         title = 'Live - ';
         if (game.period.current <= 4) {
           if (game.period.isHalftime) {
-            title += `Halftime`;
+            title += 'Halftime';
           } else if (game.period.isEndOfPeriod) {
             title += `End of Q${game.period.current}`;
           } else {
@@ -189,13 +195,13 @@ const boxScore = (message, gameId) => {
     hTeamTable.setHeading('Player', 'MIN', 'PTS', 'REB', 'AST', 'BLK');
     _.each(res.data.stats.activePlayers, player => {
       if (player.teamId === vTeamId && player.points) {
-        vTeamTable.addRow(players[player.personId], player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
+        vTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
       } else if (player.points) {
-        hTeamTable.addRow(players[player.personId], player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
+        hTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
       }
     });
-    message.channel.sendMessage(`\`\`\`${vTeamTable.toString()}\`\`\``);
-    message.channel.sendMessage(`\`\`\`${hTeamTable.toString()}\`\`\``);
+    message.channel.sendMessage(`\`\`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\`\`\``);
+    message.channel.sendMessage(`\`\`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\`\``);
   }).catch(err => {
     error(message);
   });
@@ -210,8 +216,35 @@ const tricode = (message) => {
   message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
 };
 
-const player = (message, personId) => {
+const player = (message, playerName) => {
   let nbaLink = 'http://www.nba.com/players/';
+  let personId = '';
+  _.each(Object.keys(players), key => {
+    if (players[key].name.toLowerCase() === playerName.toLowerCase().trim()) {
+      personId = key;
+      return;
+    }
+  });
+  if (!personId) {
+    message.channel.sendMessage('Player Not Found :(\nYou can check out all the active NBA players @ http://www.nba.com/players/');
+    return;
+  }
+  _.each(playerName.toLowerCase().trim().split(' '), word => {
+    nbaLink += `${word}/`;
+  });
+  nbaLink += personId;
+  const intro = `${players[personId].name} - #${players[personId].jersey} | ${players[personId].position} - ${teams[players[personId].teamId].name} `;
+  const outro = `For more info, you can visit ${nbaLink}`;
+  axios.get(`${BASE_URL}/2016/players/${personId}_profile.json`).then(res => {
+    const table = new AsciiTable();
+    table.removeBorder();
+    const latestStats = res.data.league.standard.stats.latest;
+    const careerStats = res.data.league.standard.stats.careerSummary;
+    table.setHeading('', 'MPG', 'FG%', '3P%', 'FT%', 'PPG', 'RPG', 'APG', 'BPG');
+    table.addRow('2016-17', latestStats.mpg, latestStats.fgp, latestStats.tpp, latestStats.ftp, latestStats.ppg, latestStats.rpg, latestStats.apg, latestStats.bpg);
+    table.addRow('Career', careerStats.mpg, careerStats.fgp, careerStats.tpp, careerStats.ftp, careerStats.ppg, careerStats.rpg, careerStats.apg, careerStats.bpg);
+    message.channel.sendMessage(`\`\`\`${intro}\n\n${table.toString()}\`\`\`\n${outro}`);
+  });
 };
 
 module.exports = {

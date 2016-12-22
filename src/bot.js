@@ -30,13 +30,12 @@ const onReceiveMessage = message => {
   }
   if (command.split(' ')[0] === 'bs' && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
     actions.dispatch(actions.BOX_SCORE, message, command.split(' ')[1]);
-  } else if (command.split(' ')[0] === 'player') {
-    actions.dispatch(actions.PLAYER, message, command.split(' ')[1]);
+  } else if (command.split(' ')[0] === 'player' && command.split(' ').length > 1) {
+    actions.dispatch(actions.PLAYER, message, command.substring(command.indexOf(' ') + 1));
   } else {
     actions.dispatch(actions.SCORES_OR_SCHEDULES, message);
   }
 };
-
 const onReady = () => {
   console.log('ready');
 };
