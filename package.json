@@ -5,6 +5,7 @@
   "main": "bot.js",
   "scripts": {
     "start": "node src/bot.js",
+    "test": "eslint src/",
     "dev": "nodemon src/bot.js"
   },
   "author": "",
