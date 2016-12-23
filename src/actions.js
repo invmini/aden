@@ -1,9 +1,10 @@
 const _ = require('lodash');
 const moment = require('moment');
 const axios = require('axios');
-const teams = require('./constants').teams;
-const schedules = require('./constants').schedules;
-const players = require('./constants').players;
+const teams = require('./constants/teams');
+const schedules = require('./constants/schedules');
+const players = require('./constants/players');
+const rosters = require('./constants/rosters');
 const AsciiTable = require('ascii-table');
 
 const BASE_URL = 'http://data.nba.net/data/10s/prod/v1';
@@ -17,6 +18,7 @@ const W_STANDINGS = 'W_STANDINGS';
 const BOX_SCORE = 'BOX_SCORE';
 const TRICODE = 'TRICODE';
 const PLAYER = 'PLAYER';
+const TEAM = 'TEAM';
 
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
@@ -47,6 +49,9 @@ const dispatch = (actionName, message, args) => {
     case PLAYER:
       player(message, args);
       break;
+    case TEAM:
+      team(message, args);
+      break;
     default:
       break;
   }
@@ -65,7 +70,7 @@ Display relevant NBA scores/schedules on a given date (YYYYMMDD) (e.g. /nba 2016
 Alias: __/nba yesterday__, __/nba today__, __/nba tomorrow__\n\
 - **/nba tricode**\n\
 Display tricode of all NBA teams
-- **/nba [tricode]**\n\
+- **/nba [team tricode]**\n\
 Display current roster and upcoming matches of the chosen team (/nba gsw)
 - **/nba standings**\n\
 Display the current standings
@@ -182,7 +187,7 @@ const standings = (message, isEast, isWest) => {
 };
 
 const boxScore = (message, gameId) => {
-  axios.get(`${BASE_URL}/${schedules[gameId]}/${gameId}_boxscore.json`).then(res => {
+  axios.get(`${BASE_URL}/${schedules[gameId].date}/${gameId}_boxscore.json`).then(res => {
     const vTeam = res.data.basicGameData.vTeam;
     const hTeam = res.data.basicGameData.hTeam;
     const totalPeriod = res.data.basicGameData.period.current;
@@ -228,7 +233,7 @@ const boxScore = (message, gameId) => {
   });
 };
 
-const tricode = (message) => {
+const tricode = message => {
   const table = new AsciiTable();
   table.setHeading('Team', 'Tricode');
   _.each(teams, team => {
@@ -272,6 +277,43 @@ const player = (message, playerName) => {
   });
 };
 
+const team = (message, teamTricode) => {
+  const roster = rosters[teamTricode];
+  if (!roster) {
+    message.channel.sendMessage('Team Not Found :worried:\nYou can check out all the active team by typing /nba tricode and make sure the tricode you enter is correct!');
+    return;
+  }
+  // Find upcoming matches
+  let teamId = '';
+  _.each(Object.keys(teams), key => {
+    if (teams[key].tricode.toLowerCase() === teamTricode) {
+      teamId = key;
+      return;
+    }
+  });
+  const upcomingMatches = new AsciiTable();
+  upcomingMatches.setHeading('', 'V.S.', 'Date', 'Game ID');
+  _.each(Object.keys(schedules), key => {
+    const daysDiff = moment(schedules[key].date).diff(moment(), 'day');
+    if (daysDiff >= 0 && daysDiff <= 7 && (schedules[key].home === teamId || schedules[key].away === teamId)) {
+      if (schedules[key].home === teamId) {
+        upcomingMatches.addRow('Home', teams[schedules[key].away].name, schedules[key].date, key);
+      } else {
+        upcomingMatches.addRow('Away', teams[schedules[key].home].name, schedules[key].date, key);
+      }
+    }
+  });
+
+  // Roster
+  const table = new AsciiTable();
+  table.setHeading('Name', '#', 'Position');
+  _.each(roster, personId => {
+    const playerInfo = players[personId];
+    table.addRow(playerInfo.name, playerInfo.jersey, playerInfo.position.replace('G', 'Guard').replace('F', 'Forward').replace('C', 'Center'));
+  });
+  message.channel.sendMessage(`\`\`\`${upcomingMatches.toString()}\n${table.toString()}\`\`\``);
+};
+
 module.exports = {
   dispatch,
   HELP,
@@ -283,4 +325,5 @@ module.exports = {
   BOX_SCORE,
   TRICODE,
   PLAYER,
+  TEAM,
 };
