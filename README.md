@@ -47,4 +47,11 @@ Display the box score of the chosen game
 npm install
 npm start
 ```
+## Special Thanks
+[Discord.js](https://discord.js.org/)
+[nba.js](https://github.com/kshvmdn/nba.js)
+
 ## TODO
+c Basic NL
+P
+Timezone
