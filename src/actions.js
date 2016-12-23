@@ -20,6 +20,8 @@ const TRICODE = 'TRICODE';
 const PLAYER = 'PLAYER';
 const TEAM = 'TEAM';
 
+moment.tz.setDefault("America/New_York");
+
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
     case HELP:
@@ -187,10 +189,14 @@ const standings = (message, isEast, isWest) => {
 };
 
 const boxScore = (message, gameId) => {
-  axios.get(`${BASE_URL}/${schedules[gameId].date}/${gameId}_boxscore.json`).then(res => {
+  axios.get(`${BASE_URL}/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${gameId}_boxscore.json`).then(res => {
     const vTeam = res.data.basicGameData.vTeam;
     const hTeam = res.data.basicGameData.hTeam;
     const totalPeriod = res.data.basicGameData.period.current;
+    if (!totalPeriod) {
+      message.channel.sendMessage('Game Has Not Started Yet');
+      return;
+    }
     const vTeamId = vTeam.teamId;
     const hTeamId = hTeam.teamId;
 
@@ -294,12 +300,12 @@ const team = (message, teamTricode) => {
   const upcomingMatches = new AsciiTable();
   upcomingMatches.setHeading('', 'V.S.', 'Date', 'Game ID');
   _.each(Object.keys(schedules), key => {
-    const daysDiff = moment(schedules[key].date).diff(moment(), 'day');
-    if (daysDiff >= 0 && daysDiff <= 7 && (schedules[key].home === teamId || schedules[key].away === teamId)) {
+    const hoursDiff = moment(schedules[key].date).diff(moment(), 'hour');
+    if (hoursDiff >= 0 && hoursDiff <= 7 * 24 && (schedules[key].home === teamId || schedules[key].away === teamId)) {
       if (schedules[key].home === teamId) {
-        upcomingMatches.addRow('Home', teams[schedules[key].away].name, schedules[key].date, key);
+        upcomingMatches.addRow('Home', teams[schedules[key].away].name, moment(schedules[key].date).format('dddd, MMMM D, h:mmA'), key);
       } else {
-        upcomingMatches.addRow('Away', teams[schedules[key].home].name, schedules[key].date, key);
+        upcomingMatches.addRow('Away', teams[schedules[key].home].name, moment(schedules[key].date).format('dddd, MMMM D, h:mmA'), key);
       }
     }
   });
