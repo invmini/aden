@@ -49,9 +49,10 @@ npm start
 ```
 ## Special Thanks
 [Discord.js](https://discord.js.org/)
+
 [nba.js](https://github.com/kshvmdn/nba.js)
 
 ## TODO
-c Basic NL
-P
+Basic NLP
+
 Timezone
