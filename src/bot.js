@@ -24,16 +24,16 @@ const onReceiveMessage = message => {
     case 'wstandings':
       dispatch(actions.W_STANDINGS, message);
       return;
-    case 'tricode':
-      dispatch(actions.TRICODE, message);
+    case 'teams':
+      dispatch(actions.TEAMS, message);
       return;
   }
-  if (command.split(' ')[0] === 'bs' && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
+  if (command.split(' ')[0] === 'bs' && command.split(' ')[1] && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
     dispatch(actions.BOX_SCORE, message, command.split(' ')[1]);
   } else if (command.split(' ')[0] === 'player' && command.split(' ').length > 1) {
     dispatch(actions.PLAYER, message, command.substring(command.indexOf(' ') + 1));
-  } else if (command.length === 3) {
-    dispatch(actions.TEAM, message, command);
+  } else if (command.split(' ')[0] === 'team' && command.split(' ').length > 1) {
+    dispatch(actions.TEAM, message, command.substring(command.indexOf(' ') + 1));
   } else {
     dispatch(actions.SCORES_OR_SCHEDULES, message);
   }

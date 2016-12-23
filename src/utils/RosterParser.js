@@ -14,14 +14,13 @@ _.each(teams, team => {
   }
   axios.get(`http://data.nba.net/data/10s/prod/v1/2016/teams/${nickname}/roster.json`).then(res => {
     _.each(res.data.league.standard.players, player => {
-      if (data[team.tricode.toLowerCase()]) {
-        data[team.tricode.toLowerCase()].push(player.personId);
+      if (data[nickname]) {
+        data[nickname].push(player.personId);
       } else {
-        data[team.tricode.toLowerCase()] = [player.personId];
+        data[nickname] = [player.personId];
       }
     });
   console.log(data);
-  console.log(Object.keys(data).length);
   }).catch(err => {
     console.log(err);
   });

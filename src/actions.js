@@ -16,7 +16,7 @@ const STANDINGS = 'STANDINGS';
 const E_STANDINGS = 'E_STANDINGS';
 const W_STANDINGS = 'W_STANDINGS';
 const BOX_SCORE = 'BOX_SCORE';
-const TRICODE = 'TRICODE';
+const TEAMS = 'TEAMS';
 const PLAYER = 'PLAYER';
 const TEAM = 'TEAM';
 
@@ -43,8 +43,8 @@ const dispatch = (actionName, message, args) => {
     case BOX_SCORE:
       boxScore(message, args);
       break;
-    case TRICODE:
-      tricode(message);
+    case TEAMS:
+      showTeams(message);
       break;
     case PLAYER:
       player(message, args);
@@ -67,11 +67,11 @@ const help = message => {
 Display the scores of current live games
 - **/nba [date]**\n\
 Display relevant NBA scores/schedules on a given date (YYYYMMDD) (e.g. /nba 20161031)\n\
-Alias: __/nba yesterday__, __/nba today__, __/nba tomorrow__\n\
-- **/nba tricode**\n\
-Display tricode of all NBA teams
-- **/nba [team tricode]**\n\
-Display current roster and upcoming matches of the chosen team (/nba gsw)
+Alias: __**/nba yesterday**__, __**/nba today**__, __**/nba tomorrow**__\n\
+- **/nba teams**\n\
+Display all NBA teams and their tricode
+- **/nba team [team nickname]**\n\
+Display upcoming matches and current active roster of the chosen team (/nba team raptors)
 - **/nba standings**\n\
 Display the current standings
 - **/nba estandings**\n\
@@ -81,7 +81,9 @@ Display the current Western Conference standings
 - **/nba player [player name]**\n\
 Display the current stats of the chosen player
 - **/nba bs [game id]**\n\
-Display the box score of the chosen game`;
+Display the box score of the chosen game
+- **/nba remind [game id]**\n\
+Set a reminder to a future game`;
   message.channel.sendMessage(helpMessage);
 };
 
@@ -187,6 +189,11 @@ const standings = (message, isEast, isWest) => {
 };
 
 const boxScore = (message, gameId) => {
+  let nbaBoxScoreLink = 'https://watch.nba.com/game/';
+  if (!schedules[gameId]) {
+    message.channel.sendMessage('Only 2016-17 season boxscores are available :worried:\n');
+    return;
+  }
   axios.get(`${BASE_URL}/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${gameId}_boxscore.json`).then(res => {
     const vTeam = res.data.basicGameData.vTeam;
     const hTeam = res.data.basicGameData.hTeam;
@@ -201,8 +208,8 @@ const boxScore = (message, gameId) => {
     // Quarter Score
     const scores = new AsciiTable();
     const scoresHeading = [''];
-    const vTeamScores = [teams[vTeamId].nickname];
-    const hTeamScores = [teams[hTeamId].nickname];
+    const vTeamScores = [`${teams[vTeamId].nickname} (${vTeam.win}-${vTeam.loss})`];
+    const hTeamScores = [`${teams[hTeamId].nickname} (${hTeam.win}-${hTeam.loss})`];
     for (let i = 1; i < totalPeriod + 1; i++) {
       scoresHeading.push(i > 4 ? `OT${i - 4}` : i);
       vTeamScores.push(vTeam.linescore[i - 1].score);
@@ -228,8 +235,10 @@ const boxScore = (message, gameId) => {
         hTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.steals, player.blocks);
       }
     });
+    nbaBoxScoreLink += `${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${teams[vTeamId].tricode}${teams[hTeamId].tricode}`;
+    const outro = `For a more detailed boxscore, you can visit ${nbaBoxScoreLink}`;
     message.channel.sendMessage(`\`\`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\`\`\``);
-    message.channel.sendMessage(`\`\`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\`\``);
+    message.channel.sendMessage(`\`\`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\`\`\n${outro}`);
   }).catch(err => {
     if (err) {
       error(message);
@@ -237,11 +246,11 @@ const boxScore = (message, gameId) => {
   });
 };
 
-const tricode = message => {
+const showTeams = message => {
   const table = new AsciiTable();
-  table.setHeading('Team', 'Tricode');
+  table.setHeading('Team', 'Nickname', 'Tricode');
   _.each(teams, team => {
-    table.addRow(team.name, team.tricode);
+    table.addRow(team.name, team.nickname, team.tricode);
   });
   message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
 };
@@ -281,16 +290,17 @@ const player = (message, playerName) => {
   });
 };
 
-const team = (message, teamTricode) => {
-  const roster = rosters[teamTricode];
+const team = (message, nickname) => {
+  const roster = rosters[nickname];
   if (!roster) {
-    message.channel.sendMessage('Team Not Found :worried:\nYou can check out all the active team by typing /nba tricode and make sure the tricode you enter is correct!');
+    message.channel.sendMessage('Team Not Found :worried:\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!');
     return;
   }
+
   // Find upcoming matches
   let teamId = '';
   _.each(Object.keys(teams), key => {
-    if (teams[key].tricode.toLowerCase() === teamTricode) {
+    if (teams[key].nickname.toLowerCase() === nickname) {
       teamId = key;
       return;
     }
@@ -315,7 +325,7 @@ const team = (message, teamTricode) => {
     const playerInfo = players[personId];
     table.addRow(playerInfo.name, playerInfo.jersey, playerInfo.position.replace('G', 'Guard').replace('F', 'Forward').replace('C', 'Center'));
   });
-  message.channel.sendMessage(`\`\`\`${upcomingMatches.toString()}\n${table.toString()}\`\`\``);
+  message.channel.sendMessage(`\`\`\`Upcoming matches in 7 days for ${teams[teamId].name}\n${upcomingMatches.toString()}\nTeam Roster\n${table.toString()}\`\`\``);
 };
 
 module.exports = {
@@ -327,7 +337,7 @@ module.exports = {
   E_STANDINGS,
   W_STANDINGS,
   BOX_SCORE,
-  TRICODE,
+  TEAMS,
   PLAYER,
   TEAM,
 };
