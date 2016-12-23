@@ -3,7 +3,7 @@ const axios = require('axios');
 
 axios.get('http://data.nba.net/data/10s/prod/v1/2016/players.json').then(res => {
   const data = {};
-  _.each (res.data.league.standard, player => {
+  _.each(res.data.league.standard, player => {
     if (player.jersey && player.pos && player.teamId) {
       data[player.personId] = {
         name: `${player.firstName} ${player.lastName}`,

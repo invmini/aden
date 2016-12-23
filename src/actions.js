@@ -1,4 +1,4 @@
-const _   = require('lodash');
+const _ = require('lodash');
 const moment = require('moment');
 const axios = require('axios');
 const teams = require('./constants').teams;
@@ -20,34 +20,35 @@ const PLAYER = 'PLAYER';
 
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
-  case HELP:
-    help(message);
-    break;
-  case ERROR:
-    error(message);
-    break;
-  case SCORES_OR_SCHEDULES:
-    scoresOrSchedules(message);
-    break;
-  case STANDINGS:
-    standings(message, false, false);
-    break;
-  case E_STANDINGS:
-    standings(message, true, false);
-    break;
-  case W_STANDINGS:
-    standings(message, false, true);
-    break;
-  case BOX_SCORE:
-    boxScore(message, args);
-    break;
-  case TRICODE:
-    tricode(message);
-    break;
-  case PLAYER:
-    player(message, args);
-  default:
-    break;
+    case HELP:
+      help(message);
+      break;
+    case ERROR:
+      error(message);
+      break;
+    case SCORES_OR_SCHEDULES:
+      scoresOrSchedules(message);
+      break;
+    case STANDINGS:
+      standings(message, false, false);
+      break;
+    case E_STANDINGS:
+      standings(message, true, false);
+      break;
+    case W_STANDINGS:
+      standings(message, false, true);
+      break;
+    case BOX_SCORE:
+      boxScore(message, args);
+      break;
+    case TRICODE:
+      tricode(message);
+      break;
+    case PLAYER:
+      player(message, args);
+      break;
+    default:
+      break;
   }
 };
 
@@ -87,9 +88,9 @@ const scoresOrSchedules = message => {
       liveFlag = date === 'live';
       date = moment().format('YYYYMMDD');
     } else if (date === 'tomorrow') {
-      date = moment().add({day:1}).format('YYYYMMDD');
+      date = moment().add({ day: 1 }).format('YYYYMMDD');
     } else if (date === 'yesterday') {
-      date = moment().subtract({day:1}).format('YYYYMMDD');
+      date = moment().subtract({ day: 1 }).format('YYYYMMDD');
     } else {
       error(message);
       return;
@@ -140,11 +141,13 @@ const scoresOrSchedules = message => {
         message.channel.sendMessage(`\`\`\`${summary}\`\`\``);
         summary = '';
       }
-      summary += table.toString() + '\n';
+      summary += `${table.toString()}\n`;
     });
     message.channel.sendMessage(`\`\`\`${summary}\`\`\``);
   }).catch(err => {
-    error(message);
+    if (err) {
+      error(message);
+    }
   });
 };
 
@@ -165,14 +168,16 @@ const standings = (message, isEast, isWest) => {
       .setAlign(2, AsciiTable.RIGHT)
       .setAlign(3, AsciiTable.RIGHT)
       .setAlign(6, AsciiTable.CENTER);
-    const teamsArr = isEast ? res.data.league.standard.conference.east : (isWest ? res.data.league.standard.conference.west : res.data.league.standard.teams);
+    const teamsArr = isEast ? res.data.league.standard.conference.east : isWest ? res.data.league.standard.conference.west : res.data.league.standard.teams;
     _.each(teamsArr, (team, i) => {
       const streak = team.isWinStreak ? 'W' : 'L';
       table.addRow(i + 1, teams[team.teamId].nickname, team.win, team.loss, team.winPct, `${team.lastTenWin}-${team.lastTenLoss}`, `${streak}${team.streak}`);
     });
     message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
   }).catch(err => {
-    error(message);
+    if (err) {
+      error(message);
+    }
   });
 };
 
@@ -180,30 +185,46 @@ const boxScore = (message, gameId) => {
   axios.get(`${BASE_URL}/${schedules[gameId]}/${gameId}_boxscore.json`).then(res => {
     const vTeam = res.data.basicGameData.vTeam;
     const hTeam = res.data.basicGameData.hTeam;
+    const totalPeriod = res.data.basicGameData.period.current;
     const vTeamId = vTeam.teamId;
     const hTeamId = hTeam.teamId;
-    // Quarter Score (Assume no OT for now)
+
+    // Quarter Score
     const scores = new AsciiTable();
-    scores.setHeading('', '1', '2', '3', '4', 'Total');
-    scores.addRow(teams[vTeamId].nickname, vTeam.linescore[0].score, vTeam.linescore[1].score, vTeam.linescore[2].score, vTeam.linescore[3].score, vTeam.score);
-    scores.addRow(teams[hTeamId].nickname, hTeam.linescore[0].score, hTeam.linescore[1].score, hTeam.linescore[2].score, hTeam.linescore[3].score, hTeam.score);
+    const scoresHeading = [''];
+    const vTeamScores = [teams[vTeamId].nickname];
+    const hTeamScores = [teams[hTeamId].nickname];
+    for (let i = 1; i < totalPeriod + 1; i++) {
+      scoresHeading.push(i > 4 ? `OT${i - 4}` : i);
+      vTeamScores.push(vTeam.linescore[i - 1].score);
+      hTeamScores.push(hTeam.linescore[i - 1].score);
+    }
+    scoresHeading.push('Total');
+    vTeamScores.push(vTeam.score);
+    hTeamScores.push(hTeam.score);
+    scores.setHeading(scoresHeading);
+    scores.addRow(vTeamScores);
+    scores.addRow(hTeamScores);
     message.channel.sendMessage(`\`\`\`${scores.toString()}\`\`\``);
+
     // Box Score
     const vTeamTable = new AsciiTable();
     const hTeamTable = new AsciiTable();
-    vTeamTable.setHeading('Player', 'MIN', 'PTS', 'REB', 'AST', 'BLK');
-    hTeamTable.setHeading('Player', 'MIN', 'PTS', 'REB', 'AST', 'BLK');
+    vTeamTable.setHeading('Player', 'MIN', 'PTS', 'REB', 'AST', 'STL', 'BLK');
+    hTeamTable.setHeading('Player', 'MIN', 'PTS', 'REB', 'AST', 'STL', 'BLK');
     _.each(res.data.stats.activePlayers, player => {
       if (player.teamId === vTeamId && player.points) {
-        vTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
+        vTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.steals, player.blocks);
       } else if (player.points) {
-        hTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.blocks);
+        hTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.steals, player.blocks);
       }
     });
     message.channel.sendMessage(`\`\`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\`\`\``);
     message.channel.sendMessage(`\`\`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\`\``);
   }).catch(err => {
-    error(message);
+    if (err) {
+      error(message);
+    }
   });
 };
 
@@ -226,14 +247,14 @@ const player = (message, playerName) => {
     }
   });
   if (!personId) {
-    message.channel.sendMessage('Player Not Found :(\nYou can check out all the active NBA players @ http://www.nba.com/players/');
+    message.channel.sendMessage('Player Not Found :worried:\nYou can check out all the active NBA players @ http://www.nba.com/players/');
     return;
   }
   _.each(playerName.toLowerCase().trim().split(' '), word => {
     nbaLink += `${word}/`;
   });
   nbaLink += personId;
-  const intro = `${players[personId].name} - #${players[personId].jersey} | ${players[personId].position} - ${teams[players[personId].teamId].name} `;
+  const intro = `  ${players[personId].name} - #${players[personId].jersey} | ${players[personId].position} - ${teams[players[personId].teamId].name} `;
   const outro = `For more info, you can visit ${nbaLink}`;
   axios.get(`${BASE_URL}/2016/players/${personId}_profile.json`).then(res => {
     const table = new AsciiTable();
@@ -245,7 +266,9 @@ const player = (message, playerName) => {
     table.addRow('Career', careerStats.mpg, careerStats.fgp, careerStats.tpp, careerStats.ftp, careerStats.ppg, careerStats.rpg, careerStats.apg, careerStats.bpg);
     message.channel.sendMessage(`\`\`\`${intro}\n\n${table.toString()}\`\`\`\n${outro}`);
   }).catch(err => {
-    error(message);
+    if (err) {
+      error(message);
+    }
   });
 };
 

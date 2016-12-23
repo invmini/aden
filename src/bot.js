@@ -1,5 +1,4 @@
 const Discord = require('discord.js');
-const moment = require('moment');
 const actions = require('./actions');
 
 const client = new Discord.Client();
@@ -15,18 +14,18 @@ const onReceiveMessage = message => {
   const command = message.content.replace('/nba ', '').toLowerCase().trim();
   // For string-only commands
   switch (command) {
-  case 'standings':
-    actions.dispatch(actions.STANDINGS, message);
-    return;
-  case 'estandings':
-    actions.dispatch(actions.E_STANDINGS, message);
-    return;
-  case 'wstandings':
-    actions.dispatch(actions.W_STANDINGS, message);
-    return;
-  case 'tricode':
-    actions.dispatch(actions.TRICODE, message);
-    return;
+    case 'standings':
+      actions.dispatch(actions.STANDINGS, message);
+      return;
+    case 'estandings':
+      actions.dispatch(actions.E_STANDINGS, message);
+      return;
+    case 'wstandings':
+      actions.dispatch(actions.W_STANDINGS, message);
+      return;
+    case 'tricode':
+      actions.dispatch(actions.TRICODE, message);
+      return;
   }
   if (command.split(' ')[0] === 'bs' && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
     actions.dispatch(actions.BOX_SCORE, message, command.split(' ')[1]);
@@ -38,6 +37,7 @@ const onReceiveMessage = message => {
 };
 const onReady = () => {
   console.log('ready');
+  client.user.setGame('NBA');
 };
 
 client.on('ready', onReady);
