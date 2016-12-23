@@ -128,13 +128,13 @@ const scoresOrSchedules = message => {
       table.setTitle(title);
       table.setAlign(1, AsciiTable.RIGHT);
       if (game.hTeam.score && game.vTeam.score) {
-        table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `, game.hTeam.score);
         table.addRow(`  ${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)  `, game.vTeam.score);
+        table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `, game.hTeam.score);
       } else {
         table.setAlign(0, AsciiTable.CENTER);
-        table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `);
-        table.addRow('V.S.');
         table.addRow(`  ${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)  `);
+        table.addRow('V.S.');
+        table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `);
       }
       // Split messages once it exceeds 2000 characters
       if (summary.length + table.toString().length >= 2000) {
