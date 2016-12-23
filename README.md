@@ -1,4 +1,5 @@
 # Project Aden
+[![Build Status](https://travis-ci.org/chewong/Aden.svg?branch=master)](https://travis-ci.org/chewong/Aden)
 Discord Chat Bot with Real Time NBA Scores, Schdules, and Stats!
 
 ![](https://zippy.gfycat.com/MemorableRectangularAgouti.gif)
@@ -56,3 +57,5 @@ npm start
 Basic NLP
 
 Timezone
+
+Reminder
