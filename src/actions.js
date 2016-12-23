@@ -1,4 +1,3 @@
-const nba = require('nba.js');
 const _   = require('lodash');
 const moment = require('moment');
 const axios = require('axios');
