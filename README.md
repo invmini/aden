@@ -1,5 +1,6 @@
 # Project Aden
 [![Build Status](https://travis-ci.org/chewong/Aden.svg?branch=master)](https://travis-ci.org/chewong/Aden)
+
 Discord Chat Bot with Real Time NBA Scores, Schdules, and Stats!
 
 ![](https://zippy.gfycat.com/MemorableRectangularAgouti.gif)
@@ -46,7 +47,7 @@ Display the box score of the chosen game
 ## Development
 ```
 npm install
-npm start
+npm run dev
 ```
 ## Special Thanks
 [Discord.js](https://discord.js.org/)
