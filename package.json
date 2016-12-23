@@ -13,6 +13,7 @@
     "ascii-table": "0.0.9",
     "axios": "^0.15.3",
     "discord.js": "^10.0.1",
+    "lodash": "^4.17.2",
     "moment": "^2.17.1"
   },
   "devDependencies": {
