@@ -105,7 +105,7 @@ const scoresOrSchedules = message => {
         return;
       }
       table.clear();
-      // Title logic
+      // Title logic (kinda messy, need to refactor)
       let title = '';
       if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
         title = `Finished - ${game.gameId}`;
@@ -117,9 +117,8 @@ const scoresOrSchedules = message => {
           } else if (game.period.isEndOfPeriod) {
             title += `End of Q${game.period.current}`;
           } else {
-            title += `Q${game.period.current} ${game.clock}`;
+            title += game.period.current === 0 ? 'Starting Soon' : `Q${game.period.current} ${game.clock}`;
           }
-
         } else {
           title += `OT${game.period.current - 4} ${game.clock}`;
         }
@@ -129,8 +128,8 @@ const scoresOrSchedules = message => {
       table.setTitle(title);
       table.setAlign(1, AsciiTable.RIGHT);
       if (game.hTeam.score && game.vTeam.score) {
-        table.addRow(`${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)`, game.hTeam.score);
-        table.addRow(`${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)`, game.vTeam.score);
+        table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `, game.hTeam.score);
+        table.addRow(`  ${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)  `, game.vTeam.score);
       } else {
         table.setAlign(0, AsciiTable.CENTER);
         table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `);
@@ -173,6 +172,8 @@ const standings = (message, isEast, isWest) => {
       table.addRow(i + 1, teams[team.teamId].nickname, team.win, team.loss, team.winPct, `${team.lastTenWin}-${team.lastTenLoss}`, `${streak}${team.streak}`);
     });
     message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
+  }).catch(err => {
+    error(message);
   });
 };
 
@@ -244,6 +245,8 @@ const player = (message, playerName) => {
     table.addRow('2016-17', latestStats.mpg, latestStats.fgp, latestStats.tpp, latestStats.ftp, latestStats.ppg, latestStats.rpg, latestStats.apg, latestStats.bpg);
     table.addRow('Career', careerStats.mpg, careerStats.fgp, careerStats.tpp, careerStats.ftp, careerStats.ppg, careerStats.rpg, careerStats.apg, careerStats.bpg);
     message.channel.sendMessage(`\`\`\`${intro}\n\n${table.toString()}\`\`\`\n${outro}`);
+  }).catch(err => {
+    error(message);
   });
 };
 
