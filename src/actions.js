@@ -20,8 +20,6 @@ const TRICODE = 'TRICODE';
 const PLAYER = 'PLAYER';
 const TEAM = 'TEAM';
 
-moment.tz.setDefault("America/New_York");
-
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
     case HELP:
