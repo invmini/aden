@@ -5,3 +5,9 @@ cache:
     - node_modules
 install: npm install
 script: npm test
+notifications:
+  email:
+    recipients:
+      - lovinghist@gmail.com
+    on_success: never
+    on_failure: always
