@@ -9,6 +9,7 @@ const AsciiTable = require('ascii-table');
 
 const BASE_URL = 'http://data.nba.net/data/10s/prod/v1';
 
+// Actions
 const HELP = 'HELP';
 const ERROR = 'ERROR';
 const SCORES_OR_SCHEDULES = 'SCORES_OR_SCHEDULES';
@@ -19,6 +20,46 @@ const BOX_SCORE = 'BOX_SCORE';
 const TEAMS = 'TEAMS';
 const PLAYER = 'PLAYER';
 const TEAM = 'TEAM';
+
+// Utility functions
+const findTeamIdByNickname = nickname => {
+  let teamId = '';
+  _.each(Object.keys(teams), key => {
+    if (teams[key].nickname.toLowerCase() === nickname.toLowerCase().trim()) {
+      teamId = key;
+      return;
+    }
+  });
+  return teamId;
+};
+
+const findPersonIdByName = playerName => {
+  let personId = '';
+  _.each(Object.keys(players), key => {
+    if (players[key].name.toLowerCase() === playerName.toLowerCase().trim()) {
+      personId = key;
+      return;
+    }
+  });
+  return personId;
+};
+
+const findMostRecentGameByTeamId = teamId => {
+  let gameId = '';
+  let minSeconds = Infinity;
+  _.each(Object.keys(schedules), key => {
+    const secondDiff = moment().diff(schedules[key].date, 'second');
+    // Only find the game that is ongoing/finished
+    if (secondDiff < 0) {
+      return;
+    }
+    if (secondDiff < minSeconds && (schedules[key].home === teamId || schedules[key].away === teamId)) {
+      minSeconds = secondDiff;
+      gameId = key;
+    }
+  });
+  return gameId;
+};
 
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
@@ -71,7 +112,7 @@ Alias: __**/nba yesterday**__, __**/nba today**__, __**/nba tomorrow**__\n\
 - **/nba teams**\n\
 Display all NBA teams and their tricode
 - **/nba team [team nickname]**\n\
-Display upcoming matches and current active roster of the chosen team (/nba team raptors)
+Display upcoming matches and current active roster of the chosen team (e.g. /nba team raptors)
 - **/nba standings**\n\
 Display the current standings
 - **/nba estandings**\n\
@@ -80,9 +121,10 @@ Display the current Easten Conference standings
 Display the current Western Conference standings
 - **/nba player [player name]**\n\
 Display the current stats of the chosen player
-- **/nba bs [game id]**\n\
-Display the box score of the chosen game
-- **/nba remind [game id]**\n\
+- **/nba bs [nickname|game id]**\n\
+Display the box score of the chosen game (e.g. /nba bs raptors, /nba bs 0021600454)
+(Note: If nickname is used, the boxscore of the most recent ongoing/finished game will be displayed)
+- **/nba remind [nickname|game id]**\n\
 Set a reminder to a future game`;
   message.channel.sendMessage(helpMessage);
 };
@@ -90,6 +132,7 @@ Set a reminder to a future game`;
 const scoresOrSchedules = message => {
   let date = message.content.substring(5).trim();
   let liveFlag = false;
+  // Checking for alias (live, yesterday, today, tomorrow)
   if (!moment(date).isValid()) {
     if (date === 'today' || date === 'live') {
       liveFlag = date === 'live';
@@ -117,6 +160,7 @@ const scoresOrSchedules = message => {
       if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
         title = `Finished - ${game.gameId}`;
       } else if (game.isGameActivated) {
+        // Live game title logic
         title = 'Live - ';
         if (game.period.current <= 4) {
           if (game.period.isHalftime) {
@@ -134,6 +178,7 @@ const scoresOrSchedules = message => {
       }
       table.setTitle(title);
       table.setAlign(1, AsciiTable.RIGHT);
+      // Only add scores if there are scores
       if (game.hTeam.score && game.vTeam.score) {
         table.addRow(`  ${teams[game.vTeam.teamId].nickname} (${game.vTeam.win}W, ${game.vTeam.loss}L)  `, game.vTeam.score);
         table.addRow(`  ${teams[game.hTeam.teamId].nickname} (${game.hTeam.win}W, ${game.hTeam.loss}L)  `, game.hTeam.score);
@@ -189,9 +234,18 @@ const standings = (message, isEast, isWest) => {
 };
 
 const boxScore = (message, gameId) => {
-  let nbaBoxScoreLink = 'https://watch.nba.com/game/';
+  // Check if gameId is a team nickname
+  if (isNaN(gameId)) {
+    // Need to find the gameId of the most recent match
+    const teamId = findTeamIdByNickname(gameId);
+    if (!teamId) {
+      error(message);
+      return;
+    }
+    gameId = findMostRecentGameByTeamId(teamId);
+  }
   if (!schedules[gameId]) {
-    message.channel.sendMessage('Only 2016-17 season boxscores are available :worried:\n');
+    error(message);
     return;
   }
   axios.get(`${BASE_URL}/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${gameId}_boxscore.json`).then(res => {
@@ -235,7 +289,7 @@ const boxScore = (message, gameId) => {
         hTeamTable.addRow(players[player.personId].name, player.min.split(':')[0], player.points, player.totReb, player.assists, player.steals, player.blocks);
       }
     });
-    nbaBoxScoreLink += `${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${teams[vTeamId].tricode}${teams[hTeamId].tricode}`;
+    const nbaBoxScoreLink = `https://watch.nba.com/game/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${teams[vTeamId].tricode}${teams[hTeamId].tricode}`;
     const outro = `For a more detailed boxscore, you can visit ${nbaBoxScoreLink}`;
     message.channel.sendMessage(`\`\`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\`\`\``);
     message.channel.sendMessage(`\`\`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\`\`\n${outro}`);
@@ -257,13 +311,7 @@ const showTeams = message => {
 
 const player = (message, playerName) => {
   let nbaLink = 'http://www.nba.com/players/';
-  let personId = '';
-  _.each(Object.keys(players), key => {
-    if (players[key].name.toLowerCase() === playerName.toLowerCase().trim()) {
-      personId = key;
-      return;
-    }
-  });
+  const personId = findPersonIdByName(playerName);
   if (!personId) {
     message.channel.sendMessage('Player Not Found :worried:\nYou can check out all the active NBA players @ http://www.nba.com/players/');
     return;
@@ -298,22 +346,19 @@ const team = (message, nickname) => {
   }
 
   // Find upcoming matches
-  let teamId = '';
-  _.each(Object.keys(teams), key => {
-    if (teams[key].nickname.toLowerCase() === nickname) {
-      teamId = key;
-      return;
-    }
-  });
+  const teamId = findTeamIdByNickname(nickname);
   const upcomingMatches = new AsciiTable();
   upcomingMatches.setHeading('', 'V.S.', 'Date', 'Game ID');
   _.each(Object.keys(schedules), key => {
-    const hoursDiff = moment(schedules[key].date).diff(moment(), 'hour');
-    if (hoursDiff >= 0 && hoursDiff <= 7 * 24 && (schedules[key].home === teamId || schedules[key].away === teamId)) {
+    const minutesDiff = moment(schedules[key].date).diff(moment(), 'minute');
+    // To detect live game, check minutesDiff >= -3 * 60 (assuming a game is around 3 hours)
+    // 7 days = 60 * 24 * 7 minute
+    if (minutesDiff >= -3 * 60 && minutesDiff <= 60 * 24 * 7 && (schedules[key].home === teamId || schedules[key].away === teamId)) {
+      const date = minutesDiff >= 0 ? moment(schedules[key].date).format('dddd, MMMM D, h:mmA') : `Live - type /nba bs ${nickname} to type live boxscore`;
       if (schedules[key].home === teamId) {
-        upcomingMatches.addRow('Home', teams[schedules[key].away].name, moment(schedules[key].date).format('dddd, MMMM D, h:mmA'), key);
+        upcomingMatches.addRow('Home', teams[schedules[key].away].name, date, key);
       } else {
-        upcomingMatches.addRow('Away', teams[schedules[key].home].name, moment(schedules[key].date).format('dddd, MMMM D, h:mmA'), key);
+        upcomingMatches.addRow('Away', teams[schedules[key].home].name, date, key);
       }
     }
   });

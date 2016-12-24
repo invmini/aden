@@ -29,8 +29,8 @@ const onReceiveMessage = message => {
       dispatch(actions.TEAMS, message);
       return;
   }
-  if (command.split(' ')[0] === 'bs' && command.split(' ')[1] && command.split(' ')[1].length === 10 && !isNaN(command.split(' ')[1])) {
-    dispatch(actions.BOX_SCORE, message, command.split(' ')[1]);
+  if (command.split(' ')[0] === 'bs' && command.split(' ')[1] && command.split(' ').length > 1) {
+    dispatch(actions.BOX_SCORE, message, command.substring(command.indexOf(' ') + 1));
   } else if (command.split(' ')[0] === 'player' && command.split(' ').length > 1) {
     dispatch(actions.PLAYER, message, command.substring(command.indexOf(' ') + 1));
   } else if (command.split(' ')[0] === 'team' && command.split(' ').length > 1) {
