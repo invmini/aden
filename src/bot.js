@@ -1,5 +1,6 @@
 const Discord = require('discord.js');
 const actions = require('./actions');
+const config = require('./config');
 const dispatch = actions.dispatch;
 
 const client = new Discord.Client();
@@ -47,4 +48,4 @@ client.on('ready', onReady);
 
 client.on('message', onReceiveMessage);
 
-client.login('MjYwOTgxOTAzMTMyMzI3OTM2.CzuU1A.UHl2hlDz1R5HB1Et5wbnlJs7oK4');
+client.login(process.env.BOT_TOKEN || config.BOT_TOKEN);
