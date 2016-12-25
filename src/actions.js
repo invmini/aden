@@ -20,6 +20,7 @@ const BOX_SCORE = 'BOX_SCORE';
 const TEAMS = 'TEAMS';
 const PLAYER = 'PLAYER';
 const TEAM = 'TEAM';
+const REMIND = 'REMIND';
 
 // Utility functions
 const findTeamIdByNickname = nickname => {
@@ -61,6 +62,28 @@ const findMostRecentGameByTeamId = teamId => {
   return gameId;
 };
 
+const findUpcomingGameByTeamId = teamId => {
+  let gameId = '';
+  let minSeconds = Infinity;
+  _.each(Object.keys(schedules), key => {
+    const secondDiff = moment(schedules[key].date).diff(moment(), 'second');
+    if (secondDiff < 0) {
+      return;
+    }
+    if (secondDiff < minSeconds && (schedules[key].home === teamId || schedules[key].away === teamId)) {
+      minSeconds = secondDiff;
+      gameId = key;
+    }
+  });
+  return gameId;
+};
+
+const setGameReminder = (message, gameId) => {
+  const home = teams[schedules[gameId].home];
+  const away = teams[schedules[gameId].away];
+  message.reply(`Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:`);
+};
+
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
     case HELP:
@@ -93,13 +116,16 @@ const dispatch = (actionName, message, args) => {
     case TEAM:
       team(message, args);
       break;
+    case REMIND:
+      remind(message, args);
+      break;
     default:
       break;
   }
 };
 
 const error = message => {
-  const errorMessage = 'Invalid parameters/commands\nType /nba to view all commands';
+  const errorMessage = 'Invalid parameters/commands are invalid:japanese_goblin:\nType __**/nba**__ to view all commands';
   message.channel.sendMessage(errorMessage);
 };
 
@@ -111,7 +137,7 @@ Display relevant NBA scores/schedules on a given date (YYYYMMDD) (e.g. /nba 2016
 Alias: __**/nba yesterday**__, __**/nba today**__, __**/nba tomorrow**__\n\
 - **/nba teams**\n\
 Display all NBA teams and their tricode
-- **/nba team [team nickname]**\n\
+- **/nba team [nickname]**\n\
 Display upcoming matches and current active roster of the chosen team (e.g. /nba team raptors)
 - **/nba standings**\n\
 Display the current standings
@@ -313,7 +339,7 @@ const player = (message, playerName) => {
   let nbaLink = 'http://www.nba.com/players/';
   const personId = findPersonIdByName(playerName);
   if (!personId) {
-    message.channel.sendMessage('Player Not Found :worried:\nYou can check out all the active NBA players @ http://www.nba.com/players/');
+    message.channel.sendMessage('Don\'t think this guy is good enough to be in the league :joy:\nYou can check out all the average NBA players @ http://www.nba.com/players/');
     return;
   }
   _.each(playerName.toLowerCase().trim().split(' '), word => {
@@ -354,7 +380,7 @@ const team = (message, nickname) => {
     // To detect live game, check minutesDiff >= -3 * 60 (assuming a game is around 3 hours)
     // 7 days = 60 * 24 * 7 minute
     if (minutesDiff >= -3 * 60 && minutesDiff <= 60 * 24 * 7 && (schedules[key].home === teamId || schedules[key].away === teamId)) {
-      const date = minutesDiff >= 0 ? moment(schedules[key].date).format('dddd, MMMM D, h:mmA') : `Live - type /nba bs ${nickname} to type live boxscore`;
+      const date = minutesDiff >= 0 ? moment(schedules[key].date).format('dddd, MMMM D, h:mmA') : `Live - type __**/nba bs ${nickname}**__ to type live boxscore`;
       if (schedules[key].home === teamId) {
         upcomingMatches.addRow('Home', teams[schedules[key].away].name, date, key);
       } else {
@@ -373,6 +399,31 @@ const team = (message, nickname) => {
   message.channel.sendMessage(`\`\`\`Upcoming matches in 7 days for ${teams[teamId].name}\n${upcomingMatches.toString()}\nTeam Roster\n${table.toString()}\`\`\``);
 };
 
+const remind = (message, gameId) => {
+  // Check if gameId is a team nickname
+  if (isNaN(gameId)) {
+    // Need to find the gameId of the most recent match
+    const teamId = findTeamIdByNickname(gameId);
+    if (!teamId) {
+      error(message);
+      return;
+    }
+    gameId = findUpcomingGameByTeamId(teamId);
+  } else if (!schedules[gameId]) {
+    error(message);
+    return;
+  } else if (moment(schedules[gameId].date).diff(moment(), 'second') < 0) {
+    message.channel.sendMessage(`You need a time machine to set a reminder in the past. Type __**/nba bs ${gameId}**__ to check out the boxscore!`);
+    return;
+  }
+  // Use setTimeout to set a reminder
+  setTimeout(() => setGameReminder(message, gameId), moment(schedules[gameId].date).diff(moment(), 'second') * 1000);
+  const home = teams[schedules[gameId].home];
+  const away = teams[schedules[gameId].away];
+  const howLong = moment(schedules[gameId].date).fromNow();
+  message.reply(`Game reminder set! ${home.name} V.S. ${away.name} is starting ${howLong}:ok_hand:`);
+};
+
 module.exports = {
   dispatch,
   HELP,
@@ -385,4 +436,5 @@ module.exports = {
   TEAMS,
   PLAYER,
   TEAM,
+  REMIND,
 };

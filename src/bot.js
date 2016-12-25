@@ -29,14 +29,32 @@ const onReceiveMessage = message => {
       dispatch(actions.TEAMS, message);
       return;
   }
-  if (command.split(' ')[0] === 'bs' && command.split(' ')[1] && command.split(' ').length > 1) {
-    dispatch(actions.BOX_SCORE, message, command.substring(command.indexOf(' ') + 1));
-  } else if (command.split(' ')[0] === 'player' && command.split(' ').length > 1) {
-    dispatch(actions.PLAYER, message, command.substring(command.indexOf(' ') + 1));
-  } else if (command.split(' ')[0] === 'team' && command.split(' ').length > 1) {
-    dispatch(actions.TEAM, message, command.substring(command.indexOf(' ') + 1));
-  } else {
-    dispatch(actions.SCORES_OR_SCHEDULES, message);
+
+  // For commands that have arguments
+  switch (command.split(' ')[0].toLowerCase()) {
+    case 'bs':
+      if (command.split(' ')[1] && command.split(' ').length > 1) {
+        dispatch(actions.BOX_SCORE, message, command.substring(command.indexOf(' ') + 1));
+      }
+      break;
+    case 'player':
+      if (command.split(' ').length > 1) {
+        dispatch(actions.PLAYER, message, command.substring(command.indexOf(' ') + 1));
+      }
+      break;
+    case 'team':
+      if (command.split(' ').length > 1) {
+        dispatch(actions.TEAM, message, command.substring(command.indexOf(' ') + 1));
+      }
+      break;
+    case 'remind':
+      if (command.split(' ').length > 1) {
+        dispatch(actions.REMIND, message, command.substring(command.indexOf(' ') + 1));
+      }
+      break;
+    default:
+      dispatch(actions.SCORES_OR_SCHEDULES, message);
+      break;
   }
 };
 const onReady = () => {
