@@ -1,6 +1,8 @@
 # Project Aden
 [![Build Status](https://travis-ci.org/chewong/Aden.svg?branch=master)](https://travis-ci.org/chewong/Aden)
 
+[Try it here!](https://discordapp.com/oauth2/authorize?&client_id=260981903132327936&scope=bot)
+
 Discord Chat Bot with Real Time NBA Scores, Schdules, and Stats!
 
 ![](https://zippy.gfycat.com/MemorableRectangularAgouti.gif)
@@ -16,13 +18,13 @@ Display relevant NBA scores/schedules on a given date (YYYYMMDD) (e.g. /nba 2016
 
 Alias: ```/nba yesterday```, ```/nba today```, ```/nba tomorrow```
 
-```/nba tricode```
+```/nba teams```
 
-Display tricode of all NBA teams
+Display all NBA teams and their tricode
 
-```/nba [tricode]```
+```/nba team [nickname]```
 
-Display current roster and upcoming matches of the chosen team (/nba gsw)
+Display upcoming matches and current active roster of the chosen team (e.g. /nba team raptors)
 
 ```/nba standings```
 
@@ -40,9 +42,15 @@ Display the current Western Conference standings
 
 Display the current stats of the chosen player
 
-```/nba bs [game id]```
+```/nba bs [nickname|game id]```
 
-Display the box score of the chosen game
+Display the box score of the chosen game (e.g. /nba bs raptors, /nba bs 0021600454)
+
+(Note: If nickname is used, the boxscore of the most recent ongoing/finished game will be displayed)
+
+```/nba remind [nickname|game id]```
+
+Set a reminder to a future game
 
 ## Development
 ```
@@ -58,5 +66,3 @@ npm run dev
 Basic NLP
 
 Timezone
-
-Reminder
