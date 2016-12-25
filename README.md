@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/chewong/Aden.svg?branch=master)](https://travis-ci.org/chewong/Aden)
 ![Heroku](https://camo.githubusercontent.com/8b13ffa419f97fb10bcac89231a26f1a43e43b58/687474703a2f2f6865726f6b752d62616467652e6865726f6b756170702e636f6d2f3f6170703d616e67756c61726a732d63727970746f267374796c653d666c6174267376673d3126726f6f743d696e6465782e68746d6c)
-[![Discord](https://discordapp.com/api/guilds/196084053936439297/widget.png)](https://discord.gg/X9376E7)
+[![Discord](https://discordapp.com/api/guilds/196084053936439297/widget.png)](https://discord.gg/y3CVK9r)
 
 # Project Aden
 
