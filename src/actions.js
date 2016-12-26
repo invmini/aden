@@ -6,10 +6,21 @@ const schedules = require('./constants/schedules');
 const players = require('./constants/players');
 const rosters = require('./constants/rosters');
 const AsciiTable = require('ascii-table');
+const Matcher = require('did-you-mean');
 
 const BASE_URL = 'http://data.nba.net/data/10s/prod/v1';
 
-// Actions
+// Setup matcher
+const teamMatcher = new Matcher();
+_.each(teams, team => {
+  teamMatcher.add(team.nickname);
+});
+const playerMatcher = new Matcher();
+_.each(players, player => {
+  playerMatcher.add(player.name);
+});
+
+// Action constants
 const HELP = 'HELP';
 const ERROR = 'ERROR';
 const SCORES_OR_SCHEDULES = 'SCORES_OR_SCHEDULES';
@@ -25,6 +36,12 @@ const REMIND = 'REMIND';
 // Utility functions
 const findTeamIdByNickname = nickname => {
   let teamId = '';
+  // Edge cases
+  if (nickname.toLowerCase().trim() === 'sixers') {
+    nickname = '76ers';
+  } else if (nickname.toLowerCase().trim() === 'blazers') {
+    nickname = 'Trail Blazers';
+  }
   _.each(Object.keys(teams), key => {
     if (teams[key].nickname.toLowerCase() === nickname.toLowerCase().trim()) {
       teamId = key;
@@ -84,6 +101,9 @@ const setGameReminder = (message, gameId) => {
   message.reply(`Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:`);
 };
 
+/**
+ * Dispatch an specific action according to the action name
+ */
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
     case HELP:
@@ -124,11 +144,17 @@ const dispatch = (actionName, message, args) => {
   }
 };
 
+/**
+ * Error message
+ */
 const error = message => {
   const errorMessage = 'Invalid parameters/commands are invalid:japanese_goblin:\nType __**/nba**__ to view all commands';
   message.channel.sendMessage(errorMessage);
 };
 
+/**
+ *  Command: /nba
+ */
 const help = message => {
   const helpMessage = `- **/nba live**\n\
 Display the scores of current live games
@@ -155,6 +181,9 @@ Set a reminder to a future game`;
   message.channel.sendMessage(helpMessage);
 };
 
+/**
+ *  Command: /nba [date], /nba live, /nba yesterday, /nba today, /nba tomorrow
+ */
 const scoresOrSchedules = message => {
   let date = message.content.substring(5).trim();
   let liveFlag = false;
@@ -229,6 +258,9 @@ const scoresOrSchedules = message => {
   });
 };
 
+/**
+ *  Command: /nba standings, /nba estandings, /nba wstandings
+ */
 const standings = (message, isEast, isWest) => {
   let url = '';
   let title = '';
@@ -259,13 +291,19 @@ const standings = (message, isEast, isWest) => {
   });
 };
 
+/**
+ * Command: /nba bs [nickname|game id]
+ */
 const boxScore = (message, gameId) => {
   // Check if gameId is a team nickname
   if (isNaN(gameId)) {
     // Need to find the gameId of the most recent match
+    // In the case of isNaN(gameId) === truem gameId is storing the nickname of the team
     const teamId = findTeamIdByNickname(gameId);
     if (!teamId) {
-      error(message);
+      const correction = teamMatcher.get(gameId);
+      const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+      message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
       return;
     }
     gameId = findMostRecentGameByTeamId(teamId);
@@ -326,6 +364,9 @@ const boxScore = (message, gameId) => {
   });
 };
 
+/**
+ *  Command: /nba teams
+ */
 const showTeams = message => {
   const table = new AsciiTable();
   table.setHeading('Team', 'Nickname', 'Tricode');
@@ -335,11 +376,16 @@ const showTeams = message => {
   message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
 };
 
+/**
+ *  Command: /nba player [player name]
+ */
 const player = (message, playerName) => {
   let nbaLink = 'http://www.nba.com/players/';
   const personId = findPersonIdByName(playerName);
   if (!personId) {
-    message.channel.sendMessage('Don\'t think this guy is good enough to be in the league :joy:\nYou can check out all the average NBA players @ http://www.nba.com/players/');
+    const correction = playerMatcher.get(playerName);
+    const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+    message.channel.sendMessage(`Player Not Found :confused: ${didYouMean}\nYou can check out all the average NBA players @ http://www.nba.com/players/`);
     return;
   }
   _.each(playerName.toLowerCase().trim().split(' '), word => {
@@ -364,10 +410,21 @@ const player = (message, playerName) => {
   });
 };
 
+/**
+ *  Command: /nba team [nickname]
+ */
 const team = (message, nickname) => {
+  // Edge cases
+  if (nickname.toLowerCase().trim() === '76ers') {
+    nickname = 'sixers';
+  } else if (nickname.toLowerCase().trim() === 'trail blazers') {
+    nickname = 'blazers';
+  }
   const roster = rosters[nickname];
   if (!roster) {
-    message.channel.sendMessage('Team Not Found :worried:\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!');
+    const correction = teamMatcher.get(nickname);
+    const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+    message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
     return;
   }
 
@@ -399,13 +456,18 @@ const team = (message, nickname) => {
   message.channel.sendMessage(`\`\`\`Upcoming matches in 7 days for ${teams[teamId].name}\n${upcomingMatches.toString()}\nTeam Roster\n${table.toString()}\`\`\``);
 };
 
+/**
+ *  Command: /nba remind [nickname|game id]
+ */
 const remind = (message, gameId) => {
   // Check if gameId is a team nickname
   if (isNaN(gameId)) {
     // Need to find the gameId of the most recent match
     const teamId = findTeamIdByNickname(gameId);
     if (!teamId) {
-      error(message);
+      const correction = teamMatcher.get(gameId);
+      const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+      message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
       return;
     }
     gameId = findUpcomingGameByTeamId(teamId);
