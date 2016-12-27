@@ -103,6 +103,9 @@ const setGameReminder = (message, gameId) => {
 
 /**
  * Dispatch an specific action according to the action name
+ * @param {string} actionName - The action to perform
+ * @param {Message} message - The message sent from the user
+ * @param {string} args - Additional argument
  */
 const dispatch = (actionName, message, args) => {
   switch (actionName) {
@@ -146,6 +149,7 @@ const dispatch = (actionName, message, args) => {
 
 /**
  * Error message
+ * @param {Message} message - The message sent from the user
  */
 const error = message => {
   const errorMessage = 'Invalid parameters/commands are invalid:japanese_goblin:\nType __**/nba**__ to view all commands';
@@ -154,6 +158,7 @@ const error = message => {
 
 /**
  *  Command: /nba
+ *  @param {Message} message - The message sent from the user
  */
 const help = message => {
   const helpMessage = `- **/nba live**\n\
@@ -183,6 +188,7 @@ Set a reminder to a future game`;
 
 /**
  *  Command: /nba [date], /nba live, /nba yesterday, /nba today, /nba tomorrow
+ *  @param {Message} message - The message sent from the user
  */
 const scoresOrSchedules = message => {
   let date = message.content.substring(5).trim();
@@ -260,6 +266,9 @@ const scoresOrSchedules = message => {
 
 /**
  *  Command: /nba standings, /nba estandings, /nba wstandings
+ *  @param {Message} message - The message sent from the user
+ *  @param {boolean} isEast - True if the user wants to see eastern conference standings
+ *  @param {boolean} isWest - True if the user wants to see western conference standings
  */
 const standings = (message, isEast, isWest) => {
   let url = '';
@@ -292,7 +301,9 @@ const standings = (message, isEast, isWest) => {
 };
 
 /**
- * Command: /nba bs [nickname|game id]
+ *  Command: /nba bs [nickname|game id]
+ *  @param {Message} message - The message sent from the user
+ *  @param {string} gameId - The boxscore of a game with gameId
  */
 const boxScore = (message, gameId) => {
   // Check if gameId is a team nickname
@@ -366,6 +377,7 @@ const boxScore = (message, gameId) => {
 
 /**
  *  Command: /nba teams
+ *  @param {Message} message - The message sent from the user
  */
 const showTeams = message => {
   const table = new AsciiTable();
@@ -378,6 +390,8 @@ const showTeams = message => {
 
 /**
  *  Command: /nba player [player name]
+ *  @param {Message} message - The message sent from the user
+ *  @param {string} playerName - The name of the player
  */
 const player = (message, playerName) => {
   let nbaLink = 'http://www.nba.com/players/';
@@ -412,6 +426,8 @@ const player = (message, playerName) => {
 
 /**
  *  Command: /nba team [nickname]
+ *  @param {Message} message - The message sent from the user
+ *  @param {string} nickname - The nickname of the team
  */
 const team = (message, nickname) => {
   // Edge cases
@@ -458,6 +474,8 @@ const team = (message, nickname) => {
 
 /**
  *  Command: /nba remind [nickname|game id]
+ *  @param {Message} message - The message sent from the user
+ *  @param {string} gameId - Remind the user a game with gameId
  */
 const remind = (message, gameId) => {
   // Check if gameId is a team nickname
