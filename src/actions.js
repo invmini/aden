@@ -7,15 +7,11 @@ import players from './constants/players';
 import rosters from './constants/rosters';
 import AsciiTable from 'ascii-table';
 import Matcher from 'did-you-mean';
-import redis from 'redis';
 import config from './config';
 
 class Actions {
   constructor() {
     this.baseUrl = 'http://data.nba.net/data/10s/prod/v1';
-
-    // Setup cache
-    this.cache = redis.createClient(process.env.REDIS_URL || config.REDIS_URL);
 
     // Setup matcher
     this.teamMatcher = new Matcher();
