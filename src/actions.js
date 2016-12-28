@@ -7,7 +7,6 @@ import players from './constants/players';
 import rosters from './constants/rosters';
 import AsciiTable from 'ascii-table';
 import Matcher from 'did-you-mean';
-import config from './config';
 
 class Actions {
   constructor() {
