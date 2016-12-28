@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   1610612737: {
     name: 'Atlanta Hawks',
     nickname: 'Hawks',

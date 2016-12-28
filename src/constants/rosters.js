@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   pelicans:
   ['201582',
     '201600',

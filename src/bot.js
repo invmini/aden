@@ -1,6 +1,7 @@
-const Discord = require('discord.js');
-const actions = require('./actions');
-const config = require('./config');
+import Discord from 'discord.js';
+import * as actions from './actions';
+import config from './config';
+
 const dispatch = actions.dispatch;
 
 const client = new Discord.Client();
@@ -57,6 +58,7 @@ const onReceiveMessage = message => {
       break;
   }
 };
+
 const onReady = () => {
   console.log('ready');
   client.user.setGame('NBA');
