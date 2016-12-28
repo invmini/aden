@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   '0011600001':
   { date: '2016-10-01T23:30:00.000Z',
     home: '1610612761',
