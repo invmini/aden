@@ -10,6 +10,9 @@ const onReceiveMessage = message => {
   if (message.author.bot || message.content.substring(0, 4) !== '/nba') {
     return;
   }
+
+  console.log(`Incoming message: ${message.content}`);
+
   if (message.content.trim() === '/nba') {
     dispatch(actions.HELP, message);
     return;
@@ -51,6 +54,11 @@ const onReceiveMessage = message => {
     case 'remind':
       if (command.split(' ').length > 1) {
         dispatch(actions.REMIND, message, command.substring(command.indexOf(' ') + 1));
+      }
+      break;
+    case 'hl':
+      if (command.split(' ').length > 1) {
+        dispatch(actions.HIGHLIGHT, message, command.substring(command.indexOf(' ') + 1));
       }
       break;
     default:
