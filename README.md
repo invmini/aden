@@ -57,6 +57,10 @@ Set a reminder to a future game
 
 (Note: If nickname is used, the upcoming game will be reminded)
 
+```/nba hl [nickname|game id]```
+
+YouTube video of the selected game highlight
+
 ## Development
 ```
 npm install
