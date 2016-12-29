@@ -5,8 +5,10 @@ import teams from './constants/teams';
 import schedules from './constants/schedules';
 import players from './constants/players';
 import rosters from './constants/rosters';
+import config from './config';
 import AsciiTable from 'ascii-table';
 import Matcher from 'did-you-mean';
+import YouTube from 'youtube-node';
 
 class Actions {
   constructor() {
@@ -22,6 +24,9 @@ class Actions {
     _.each(players, player => {
       this.playerMatcher.add(player.name);
     });
+
+    this.youtube = new YouTube();
+    this.youtube.setKey(config.YOUTUBE_API_KEY);
   }
 
   // Utility functions
@@ -92,12 +97,36 @@ class Actions {
     message.reply(`Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:`);
   }
 
+  getGameStatus(game) {
+    let title = '';
+    if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
+      title = `Finished - ${game.gameId}`;
+    } else if (game.isGameActivated) {
+      // Live game title logic
+      title = 'Live - ';
+      if (game.period.current <= 4) {
+        if (game.period.isHalftime) {
+          title += 'Halftime';
+        } else if (game.period.isEndOfPeriod) {
+          title += `End of Q${game.period.current}`;
+        } else {
+          title += game.period.current === 0 ? 'Starting Soon' : `Q${game.period.current} ${game.clock}`;
+        }
+      } else {
+        title += `OT${game.period.current - 4} ${game.clock}`;
+      }
+    } else {
+      title += `Starting ${moment(game.startTimeUTC).fromNow()}`;
+    }
+    return title;
+  }
+
   /**
    * Error message
    * @param {Message} message - The message sent from the user
    */
   error(message) {
-    const errorMessage = 'Invalid parameters/commands are invalid:japanese_goblin:\nType __**/nba**__ to view all commands';
+    const errorMessage = 'Invalid parameters/commands are invalid:japanese_goblin:\nType `/nba` to view all commands';
     message.channel.sendMessage(errorMessage);
   }
 
@@ -106,28 +135,30 @@ class Actions {
    *  @param {Message} message - The message sent from the user
    */
   help(message) {
-    const helpMessage = `- **/nba live**\n\
+    const helpMessage = `\`/nba live\`\n\
 Display the scores of current live games
-- **/nba [date]**\n\
+\`/nba [date]\`\n\
 Display relevant NBA scores/schedules on a given date (YYYYMMDD) (e.g. /nba 20161031)\n\
-Alias: __**/nba yesterday**__, __**/nba today**__, __**/nba tomorrow**__\n\
-- **/nba teams**\n\
+Alias: \`/nba yesterday\`, \`/nba today\`, \`/nba tomorrow\`\n\
+\`/nba teams\`\n\
 Display all NBA teams and their tricode
-- **/nba team [nickname]**\n\
+\`/nba team [nickname]\`\n\
 Display upcoming matches and current active roster of the chosen team (e.g. /nba team raptors)
-- **/nba standings**\n\
+\`/nba standings\`\n\
 Display the current standings
-- **/nba estandings**\n\
+\`/nba estandings\`\n\
 Display the current Easten Conference standings
-- **/nba wstandings**\n\
+\`/nba wstandings\`\n\
 Display the current Western Conference standings
-- **/nba player [player name]**\n\
+\`/nba player [player name]\`\n\
 Display the current stats of the chosen player
-- **/nba bs [nickname|game id]**\n\
+\`/nba bs [nickname|game id]\`\n\
 Display the box score of the chosen game (e.g. /nba bs raptors, /nba bs 0021600454)
 (Note: If nickname is used, the boxscore of the most recent ongoing/finished game will be displayed)
-- **/nba remind [nickname|game id]**\n\
-Set a reminder to a future game`;
+\`/nba remind [nickname|game id]\`\n\
+Set a reminder to a future game
+\`/nba hl [nickname|game id]\`\n\
+YouTube video of the selected game highlight`;
     message.channel.sendMessage(helpMessage);
   }
 
@@ -161,27 +192,7 @@ Set a reminder to a future game`;
           return;
         }
         table.clear();
-        // Title logic (kinda messy, need to refactor)
-        let title = '';
-        if (parseInt(game.hTeam.score) > 0 && parseInt(game.vTeam.score) > 0 && !game.isGameActivated) {
-          title = `Finished - ${game.gameId}`;
-        } else if (game.isGameActivated) {
-          // Live game title logic
-          title = 'Live - ';
-          if (game.period.current <= 4) {
-            if (game.period.isHalftime) {
-              title += 'Halftime';
-            } else if (game.period.isEndOfPeriod) {
-              title += `End of Q${game.period.current}`;
-            } else {
-              title += game.period.current === 0 ? 'Starting Soon' : `Q${game.period.current} ${game.clock}`;
-            }
-          } else {
-            title += `OT${game.period.current - 4} ${game.clock}`;
-          }
-        } else {
-          title += `Starting ${moment(game.startTimeUTC).fromNow()}`;
-        }
+        const title = this.getGameStatus(game);
         table.setTitle(title);
         table.setAlign(1, AsciiTable.RIGHT);
         // Only add scores if there are scores
@@ -196,12 +207,12 @@ Set a reminder to a future game`;
         }
         // Split messages once it exceeds 2000 characters
         if (summary.length + table.toString().length >= 2000) {
-          message.channel.sendMessage(`\`\`\`${summary}\`\`\``);
+          message.channel.sendMessage(`\`${summary}\``);
           summary = '';
         }
         summary += `${table.toString()}\n`;
       });
-      message.channel.sendMessage(`\`\`\`${summary}\`\`\``);
+      message.channel.sendMessage(`\`${summary}\``);
     }).catch(err => {
       if (err) {
         this.error(message);
@@ -237,7 +248,7 @@ Set a reminder to a future game`;
         const streak = team.isWinStreak ? 'W' : 'L';
         table.addRow(i + 1, teams[team.teamId].nickname, team.win, team.loss, team.winPct, `${team.lastTenWin}-${team.lastTenLoss}`, `${streak}${team.streak}`);
       });
-      message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
+      message.channel.sendMessage(`\`${table.toString()}\``);
     }).catch(err => {
       if (err) {
         this.error(message);
@@ -258,7 +269,7 @@ Set a reminder to a future game`;
       const teamId = this.findTeamIdByNickname(gameId);
       if (!teamId) {
         const correction = this.teamMatcher.get(gameId);
-        const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+        const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
         message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
         return;
       }
@@ -278,10 +289,11 @@ Set a reminder to a future game`;
       }
       const vTeamId = vTeam.teamId;
       const hTeamId = hTeam.teamId;
+      const intro = `Game Status: ${this.getGameStatus(res.data.basicGameData)}`;
 
       // Quarter Score
       const scores = new AsciiTable();
-      const scoresHeading = [''];
+      const scoresHeading = [moment(schedules[gameId].date).format('MMMM Do, YYYY')];
       const vTeamScores = [`${teams[vTeamId].nickname} (${vTeam.win}-${vTeam.loss})`];
       const hTeamScores = [`${teams[hTeamId].nickname} (${hTeam.win}-${hTeam.loss})`];
       for (let i = 1; i < totalPeriod + 1; i++) {
@@ -295,7 +307,7 @@ Set a reminder to a future game`;
       scores.setHeading(scoresHeading);
       scores.addRow(vTeamScores);
       scores.addRow(hTeamScores);
-      message.channel.sendMessage(`\`\`\`${scores.toString()}\`\`\``);
+      message.channel.sendMessage(`\`${intro}\n${scores.toString()}\``);
 
       // Box Score
       const vTeamTable = new AsciiTable();
@@ -310,9 +322,9 @@ Set a reminder to a future game`;
         }
       });
       const nbaBoxScoreLink = `https://watch.nba.com/game/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${teams[vTeamId].tricode}${teams[hTeamId].tricode}`;
-      const outro = `For a more detailed boxscore, you can visit ${nbaBoxScoreLink}`;
-      message.channel.sendMessage(`\`\`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\`\`\``);
-      message.channel.sendMessage(`\`\`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\`\`\n${outro}`);
+      const outro = `For a more detailed boxscore, you can visit ${nbaBoxScoreLink}\nFor a highlight video, type \`/nba hl ${gameId}\``;
+      message.channel.sendMessage(`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\``);
+      message.channel.sendMessage(`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\n\n${outro}`);
     }).catch(err => {
       if (err) {
         this.error(message);
@@ -330,7 +342,7 @@ Set a reminder to a future game`;
     _.each(teams, team => {
       table.addRow(team.name, team.nickname, team.tricode);
     });
-    message.channel.sendMessage(`\`\`\`${table.toString()}\`\`\``);
+    message.channel.sendMessage(`\`${table.toString()}\``);
   }
 
   /**
@@ -343,7 +355,7 @@ Set a reminder to a future game`;
     const personId = this.findPersonIdByName(playerName);
     if (!personId) {
       const correction = this.playerMatcher.get(playerName);
-      const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+      const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
       message.channel.sendMessage(`Player Not Found :confused: ${didYouMean}\nYou can check out all the average NBA players @ http://www.nba.com/players/`);
       return;
     }
@@ -355,13 +367,12 @@ Set a reminder to a future game`;
     const outro = `For more info, you can visit ${nbaLink}`;
     axios.get(`${this.baseUrl}/2016/players/${personId}_profile.json`).then(res => {
       const table = new AsciiTable();
-      table.removeBorder();
       const latestStats = res.data.league.standard.stats.latest;
       const careerStats = res.data.league.standard.stats.careerSummary;
       table.setHeading('', 'MPG', 'FG%', '3P%', 'FT%', 'PPG', 'RPG', 'APG', 'BPG');
       table.addRow('2016-17', latestStats.mpg, latestStats.fgp, latestStats.tpp, latestStats.ftp, latestStats.ppg, latestStats.rpg, latestStats.apg, latestStats.bpg);
       table.addRow('Career', careerStats.mpg, careerStats.fgp, careerStats.tpp, careerStats.ftp, careerStats.ppg, careerStats.rpg, careerStats.apg, careerStats.bpg);
-      message.channel.sendMessage(`\`\`\`${intro}\n\n${table.toString()}\`\`\`\n${outro}`);
+      message.channel.sendMessage(`\`${intro}\n\n${table.toString()}\`\n${outro}`);
     }).catch(err => {
       if (err) {
         this.error(message);
@@ -384,7 +395,7 @@ Set a reminder to a future game`;
     const roster = rosters[nickname];
     if (!roster) {
       const correction = this.teamMatcher.get(nickname);
-      const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+      const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
       message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
       return;
     }
@@ -398,7 +409,7 @@ Set a reminder to a future game`;
       // To detect live game, check minutesDiff >= -3 * 60 (assuming a game is around 3 hours)
       // 7 days = 60 * 24 * 7 minute
       if (minutesDiff >= -3 * 60 && minutesDiff <= 60 * 24 * 7 && (schedules[key].home === teamId || schedules[key].away === teamId)) {
-        const date = minutesDiff >= 0 ? moment(schedules[key].date).format('dddd, MMMM D, h:mmA') : `Live - type __**/nba bs ${nickname}**__ to type live boxscore`;
+        const date = minutesDiff >= 0 ? moment(schedules[key].date).format('dddd, MMMM D, h:mmA') : `Live - type /nba bs ${nickname} to view live boxscore`;
         if (schedules[key].home === teamId) {
           upcomingMatches.addRow('Home', teams[schedules[key].away].name, date, key);
         } else {
@@ -414,7 +425,7 @@ Set a reminder to a future game`;
       const playerInfo = players[personId];
       table.addRow(playerInfo.name, playerInfo.jersey, playerInfo.position.replace('G', 'Guard').replace('F', 'Forward').replace('C', 'Center'));
     });
-    message.channel.sendMessage(`\`\`\`Upcoming matches in 7 days for ${teams[teamId].name}\n${upcomingMatches.toString()}\nTeam Roster\n${table.toString()}\`\`\``);
+    message.channel.sendMessage(`\`Upcoming matches in 7 days for ${teams[teamId].name}\n${upcomingMatches.toString()}\nTeam Roster\n${table.toString()}\``);
   }
 
   /**
@@ -429,7 +440,7 @@ Set a reminder to a future game`;
       const teamId = this.findTeamIdByNickname(gameId);
       if (!teamId) {
         const correction = this.teamMatcher.get(gameId);
-        const didYouMean = correction ? `Did you mean __**${correction}**__?` : '';
+        const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
         message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
         return;
       }
@@ -438,7 +449,7 @@ Set a reminder to a future game`;
       this.error(message);
       return;
     } else if (moment(schedules[gameId].date).diff(moment(), 'second') < 0) {
-      message.channel.sendMessage(`You need a time machine to set a reminder in the past. Type __**/nba bs ${gameId}**__ to check out the boxscore!`);
+      message.channel.sendMessage(`You need a time machine to set a reminder in the past. Type \`/nba bs ${gameId}\` to check out the boxscore!`);
       return;
     }
     // Use setTimeout to set a reminder
@@ -447,6 +458,46 @@ Set a reminder to a future game`;
     const away = teams[schedules[gameId].away];
     const howLong = moment(schedules[gameId].date).fromNow();
     message.reply(`Game reminder set! ${home.name} V.S. ${away.name} is starting ${howLong}:ok_hand:`);
+  }
+
+  /**
+   *  Command: /nba hl [nickname|game id]
+   *  @param {Message} message - The message sent from the user
+   *  @param {string} gameId - Remind the user a game with gameId
+   */
+  highlight(message, gameId) {
+    // Check if gameId is a team nickname
+    if (isNaN(gameId)) {
+      // Need to find the gameId of the most recent match
+      // In the case of isNaN(gameId) === truem gameId is storing the nickname of the team
+      const teamId = this.findTeamIdByNickname(gameId);
+      if (!teamId) {
+        const correction = this.teamMatcher.get(gameId);
+        const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
+        message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
+        return;
+      }
+      gameId = this.findMostRecentGameByTeamId(teamId);
+    }
+    if (!schedules[gameId]) {
+      this.error(message);
+      return;
+    } else if (moment(schedules[gameId].date).diff(moment(), 'second') > -15 * 60) {
+      // Assume 3 hours from game starts to uploading highlight
+      message.channel.sendMessage(`No highlight is available yet :worried:`);
+      return;
+    }
+    const date = schedules[gameId].date;
+    const homeTeamName = teams[schedules[gameId].home].name;
+    const awayTeamName = teams[schedules[gameId].away].name;
+    const intro = `Here is a video highlight of ${awayTeamName} vs ${homeTeamName} on ${moment(date).format('MMMM Do YYYY')}\n`;
+    const searchQuery = `${awayTeamName} vs ${homeTeamName} full game highlight ${moment(date).format('MMMM Do YYYY')}`;
+    this.youtube.search(searchQuery, 1, (error, result) => {
+      if (error) {
+        return;
+      }
+      message.channel.sendMessage(`${intro}https://www.youtube.com/watch?v=${result.items[0].id.videoId}`);
+    });
   }
 }
 
@@ -462,6 +513,7 @@ export const TEAMS = 'TEAMS';
 export const PLAYER = 'PLAYER';
 export const TEAM = 'TEAM';
 export const REMIND = 'REMIND';
+export const HIGHLIGHT = 'HIGHLIGHT';
 
 // Create an action object
 const actions = new Actions();
@@ -506,6 +558,9 @@ export const dispatch = (actionName, message, args) => {
       break;
     case REMIND:
       actions.remind(message, args);
+      break;
+    case HIGHLIGHT:
+      actions.highlight(message, args);
       break;
     default:
       break;
