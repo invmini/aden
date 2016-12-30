@@ -10,9 +10,9 @@
 
 [Click here to add Aden to your server](https://discordapp.com/oauth2/authorize?&client_id=260981903132327936&scope=bot)
 
-Discord Chat Bot with Real Time NBA Scores, Schdules, and Stats!
+Discord Chat Bot with Real Time NBA boxscores, schdules, stats, reminder and more!
 
-![](https://zippy.gfycat.com/MemorableRectangularAgouti.gif)
+![Demo](https://fat.gfycat.com/ThatUnequaledBats.gif)
 
 ## Documentation
 ```/nba live```
