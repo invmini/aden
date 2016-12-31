@@ -9,6 +9,7 @@ import config from './config';
 import AsciiTable from 'ascii-table';
 import Matcher from 'did-you-mean';
 import YouTube from 'youtube-node';
+import Logger from 'js-logger';
 
 class Actions {
   constructor() {
@@ -19,17 +20,43 @@ class Actions {
     _.each(teams, team => {
       this.teamMatcher.add(team.nickname);
     });
-
     this.playerMatcher = new Matcher();
     _.each(players, player => {
       this.playerMatcher.add(player.name);
     });
 
+    // Setup YouTube API
     this.youtube = new YouTube();
+    this.youtube.addParam('channelId', 'UCRUQQrm8_l3CVYxfq2kPMlg');
+    this.youtube.addParam('order', 'date');
     this.youtube.setKey(config.YOUTUBE_API_KEY);
+
+    // Setup current message
+    this.message = undefined;
+
+    // Setup Logger
+    Logger.useDefaults();
   }
 
-  // Utility functions
+  refresh(message) {
+    this.message = message;
+  }
+
+  sendMessage(payload, isReply = false) {
+    if (typeof payload === 'string') {
+      Logger.info(`Outgoing message: ${payload}`);
+      if (isReply) {
+        this.message.reply(payload);
+      } else {
+        this.message.channel.sendMessage(payload);
+      }
+    } else {
+      // Do all the mongo/redis stuff here
+
+    }
+  }
+
+  // utility functions
   findTeamIdByNickname(nickname) {
     let teamId = '';
     // Edge cases
@@ -91,10 +118,10 @@ class Actions {
     return gameId;
   }
 
-  setGameReminder(message, gameId) {
+  setGameReminder(gameId) {
     const home = teams[schedules[gameId].home];
     const away = teams[schedules[gameId].away];
-    message.reply(`Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:`);
+    this.sendMessage(`Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:`, true);
   }
 
   getGameStatus(game) {
@@ -125,16 +152,16 @@ class Actions {
    * Error message
    * @param {Message} message - The message sent from the user
    */
-  error(message) {
+  error() {
     const errorMessage = 'Invalid parameters/commands are invalid:japanese_goblin:\nType `/nba` to view all commands';
-    message.channel.sendMessage(errorMessage);
+    this.sendMessage(errorMessage);
   }
 
   /**
    *  Command: /nba
-   *  @param {Message} message - The message sent from the user
+
    */
-  help(message) {
+  help() {
     const helpMessage = `\`/nba live\`\n\
 Display the scores of current live games
 \`/nba [date]\`\n\
@@ -159,15 +186,15 @@ Display the box score of the chosen game (e.g. /nba bs raptors, /nba bs 00216004
 Set a reminder to a future game
 \`/nba hl [nickname|game id]\`\n\
 YouTube video of the selected game highlight`;
-    message.channel.sendMessage(helpMessage);
+    this.sendMessage(helpMessage);
   }
 
   /**
    *  Command: /nba [date], /nba live, /nba yesterday, /nba today, /nba tomorrow
-   *  @param {Message} message - The message sent from the user
+
    */
-  scoresOrSchedules(message) {
-    let date = message.content.substring(5).trim();
+  scoresOrSchedules() {
+    let date = this.message.content.substring(5).trim();
     let liveFlag = false;
     // Checking for alias (live, yesterday, today, tomorrow)
     if (!moment(date).isValid()) {
@@ -179,7 +206,7 @@ YouTube video of the selected game highlight`;
       } else if (date === 'yesterday') {
         date = moment().subtract({ day: 1 }).format('YYYYMMDD');
       } else {
-        this.error(message);
+        this.error();
         return;
       }
     }
@@ -207,26 +234,27 @@ YouTube video of the selected game highlight`;
         }
         // Split messages once it exceeds 2000 characters
         if (summary.length + table.toString().length >= 2000) {
-          message.channel.sendMessage(`\`${summary}\``);
+          this.sendMessage(`\`${summary}\``);
           summary = '';
         }
         summary += `${table.toString()}\n`;
       });
-      message.channel.sendMessage(`\`${summary}\``);
+      this.sendMessage(`\`${summary}\``);
     }).catch(err => {
       if (err) {
-        this.error(message);
+        Logger.error(err);
+        this.error();
       }
     });
   }
 
   /**
    *  Command: /nba standings, /nba estandings, /nba wstandings
-   *  @param {Message} message - The message sent from the user
+
    *  @param {boolean} isEast - True if the user wants to see eastern conference standings
    *  @param {boolean} isWest - True if the user wants to see western conference standings
    */
-  standings(message, isEast, isWest) {
+  standings(isEast, isWest) {
     let url = '';
     let title = '';
     if (isEast || isWest) {
@@ -248,20 +276,21 @@ YouTube video of the selected game highlight`;
         const streak = team.isWinStreak ? 'W' : 'L';
         table.addRow(i + 1, teams[team.teamId].nickname, team.win, team.loss, team.winPct, `${team.lastTenWin}-${team.lastTenLoss}`, `${streak}${team.streak}`);
       });
-      message.channel.sendMessage(`\`${table.toString()}\``);
+      this.sendMessage(`\`${table.toString()}\``);
     }).catch(err => {
       if (err) {
-        this.error(message);
+        Logger.error(err);
+        this.error();
       }
     });
   }
 
   /**
    *  Command: /nba bs [nickname|game id]
-   *  @param {Message} message - The message sent from the user
+
    *  @param {string} gameId - The boxscore of a game with gameId
    */
-  boxScore(message, gameId) {
+  boxScore(gameId) {
     // Check if gameId is a team nickname
     if (isNaN(gameId)) {
       // Need to find the gameId of the most recent match
@@ -270,13 +299,13 @@ YouTube video of the selected game highlight`;
       if (!teamId) {
         const correction = this.teamMatcher.get(gameId);
         const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
-        message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
+        this.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
         return;
       }
       gameId = this.findMostRecentGameByTeamId(teamId);
     }
     if (!schedules[gameId]) {
-      this.error(message);
+      this.error();
       return;
     }
     axios.get(`${this.baseUrl}/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${gameId}_boxscore.json`).then(res => {
@@ -284,7 +313,7 @@ YouTube video of the selected game highlight`;
       const hTeam = res.data.basicGameData.hTeam;
       const totalPeriod = res.data.basicGameData.period.current;
       if (!totalPeriod) {
-        message.channel.sendMessage('Game Has Not Started Yet');
+        this.sendMessage('Game Has Not Started Yet');
         return;
       }
       const vTeamId = vTeam.teamId;
@@ -307,7 +336,7 @@ YouTube video of the selected game highlight`;
       scores.setHeading(scoresHeading);
       scores.addRow(vTeamScores);
       scores.addRow(hTeamScores);
-      message.channel.sendMessage(`\`${intro}\n${scores.toString()}\``);
+      this.sendMessage(`\`${intro}\n${scores.toString()}\``);
 
       // Box Score
       const vTeamTable = new AsciiTable();
@@ -323,40 +352,41 @@ YouTube video of the selected game highlight`;
       });
       const nbaBoxScoreLink = `https://watch.nba.com/game/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${teams[vTeamId].tricode}${teams[hTeamId].tricode}`;
       const outro = `For a more detailed boxscore, you can visit ${nbaBoxScoreLink}\nFor a highlight video, type \`/nba hl ${gameId}\``;
-      message.channel.sendMessage(`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\``);
-      message.channel.sendMessage(`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\n\n${outro}`);
+      this.sendMessage(`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\``);
+      this.sendMessage(`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\n\n${outro}`);
     }).catch(err => {
       if (err) {
-        this.error(message);
+        Logger.error(err);
+        this.error();
       }
     });
   }
 
   /**
    *  Command: /nba teams
-   *  @param {Message} message - The message sent from the user
+
    */
-  showTeams(message) {
+  showTeams() {
     const table = new AsciiTable();
     table.setHeading('Team', 'Nickname', 'Tricode');
     _.each(teams, team => {
       table.addRow(team.name, team.nickname, team.tricode);
     });
-    message.channel.sendMessage(`\`${table.toString()}\``);
+    this.sendMessage(`\`${table.toString()}\``);
   }
 
   /**
    *  Command: /nba player [player name]
-   *  @param {Message} message - The message sent from the user
+
    *  @param {string} playerName - The name of the player
    */
-  player(message, playerName) {
+  player(playerName) {
     let nbaLink = 'http://www.nba.com/players/';
     const personId = this.findPersonIdByName(playerName);
     if (!personId) {
       const correction = this.playerMatcher.get(playerName);
       const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
-      message.channel.sendMessage(`Player Not Found :confused: ${didYouMean}\nYou can check out all the average NBA players @ http://www.nba.com/players/`);
+      this.sendMessage(`Player Not Found :confused: ${didYouMean}\nYou can check out all the average NBA players @ http://www.nba.com/players/`);
       return;
     }
     _.each(playerName.toLowerCase().trim().split(' '), word => {
@@ -372,20 +402,21 @@ YouTube video of the selected game highlight`;
       table.setHeading('', 'MPG', 'FG%', '3P%', 'FT%', 'PPG', 'RPG', 'APG', 'BPG');
       table.addRow('2016-17', latestStats.mpg, latestStats.fgp, latestStats.tpp, latestStats.ftp, latestStats.ppg, latestStats.rpg, latestStats.apg, latestStats.bpg);
       table.addRow('Career', careerStats.mpg, careerStats.fgp, careerStats.tpp, careerStats.ftp, careerStats.ppg, careerStats.rpg, careerStats.apg, careerStats.bpg);
-      message.channel.sendMessage(`\`${intro}\n\n${table.toString()}\`\n${outro}`);
+      this.sendMessage(`\`${intro}\n\n${table.toString()}\`\n${outro}`);
     }).catch(err => {
       if (err) {
-        this.error(message);
+        Logger.error(err);
+        this.error();
       }
     });
   }
 
   /**
    *  Command: /nba team [nickname]
-   *  @param {Message} message - The message sent from the user
+
    *  @param {string} nickname - The nickname of the team
    */
-  team(message, nickname) {
+  team(nickname) {
     // Edge cases
     if (nickname.toLowerCase().trim() === '76ers') {
       nickname = 'sixers';
@@ -396,7 +427,7 @@ YouTube video of the selected game highlight`;
     if (!roster) {
       const correction = this.teamMatcher.get(nickname);
       const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
-      message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
+      this.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
       return;
     }
 
@@ -425,15 +456,15 @@ YouTube video of the selected game highlight`;
       const playerInfo = players[personId];
       table.addRow(playerInfo.name, playerInfo.jersey, playerInfo.position.replace('G', 'Guard').replace('F', 'Forward').replace('C', 'Center'));
     });
-    message.channel.sendMessage(`\`Upcoming matches in 7 days for ${teams[teamId].name}\n${upcomingMatches.toString()}\nTeam Roster\n${table.toString()}\``);
+    this.sendMessage(`\`Upcoming matches in 7 days for ${teams[teamId].name}\n${upcomingMatches.toString()}\nTeam Roster\n${table.toString()}\``);
   }
 
   /**
    *  Command: /nba remind [nickname|game id]
-   *  @param {Message} message - The message sent from the user
+
    *  @param {string} gameId - Remind the user a game with gameId
    */
-  remind(message, gameId) {
+  remind(gameId) {
     // Check if gameId is a team nickname
     if (isNaN(gameId)) {
       // Need to find the gameId of the most recent match
@@ -441,31 +472,31 @@ YouTube video of the selected game highlight`;
       if (!teamId) {
         const correction = this.teamMatcher.get(gameId);
         const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
-        message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
+        this.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
         return;
       }
       gameId = this.findUpcomingGameByTeamId(teamId);
     } else if (!schedules[gameId]) {
-      this.error(message);
+      this.error();
       return;
     } else if (moment(schedules[gameId].date).diff(moment(), 'second') < 0) {
-      message.channel.sendMessage(`You need a time machine to set a reminder in the past. Type \`/nba bs ${gameId}\` to check out the boxscore!`);
+      this.sendMessage(`You need a time machine to set a reminder in the past. Type \`/nba bs ${gameId}\` to check out the boxscore!`);
       return;
     }
     // Use setTimeout to set a reminder
-    setTimeout(() => this.setGameReminder(message, gameId), moment(schedules[gameId].date).diff(moment(), 'second') * 1000);
+    setTimeout(() => this.setGameReminder(gameId), moment(schedules[gameId].date).diff(moment(), 'second') * 1000);
     const home = teams[schedules[gameId].home];
     const away = teams[schedules[gameId].away];
     const howLong = moment(schedules[gameId].date).fromNow();
-    message.reply(`Game reminder set! ${home.name} V.S. ${away.name} is starting ${howLong}:ok_hand:`);
+    this.sendMessage(`Game reminder set! ${home.name} V.S. ${away.name} is starting ${howLong}:ok_hand:`, true);
   }
 
   /**
    *  Command: /nba hl [nickname|game id]
-   *  @param {Message} message - The message sent from the user
+
    *  @param {string} gameId - Remind the user a game with gameId
    */
-  highlight(message, gameId) {
+  highlight(gameId) {
     // Check if gameId is a team nickname
     if (isNaN(gameId)) {
       // Need to find the gameId of the most recent match
@@ -474,17 +505,17 @@ YouTube video of the selected game highlight`;
       if (!teamId) {
         const correction = this.teamMatcher.get(gameId);
         const didYouMean = correction ? `Did you mean \`${correction}\`?` : '';
-        message.channel.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
+        this.sendMessage(`Team Not Found :confused: ${didYouMean}\nYou can check out all the active team by typing /nba teams and make sure the nickname you enter is correct!`);
         return;
       }
       gameId = this.findMostRecentGameByTeamId(teamId);
     }
     if (!schedules[gameId]) {
-      this.error(message);
+      this.error();
       return;
     } else if (moment(schedules[gameId].date).diff(moment(), 'second') > -15 * 60) {
       // Assume 3 hours from game starts to uploading highlight
-      message.channel.sendMessage(`No highlight is available yet :worried:`);
+      this.sendMessage(`No highlight is available yet :worried:`);
       return;
     }
     const date = schedules[gameId].date;
@@ -496,7 +527,16 @@ YouTube video of the selected game highlight`;
       if (error) {
         return;
       }
-      message.channel.sendMessage(`${intro}https://www.youtube.com/watch?v=${result.items[0].id.videoId}`);
+      this.sendMessage(`${intro}https://www.youtube.com/watch?v=${result.items[0].id.videoId}`);
+    });
+  }
+
+  shaq() {
+    this.youtube.search('Shaqtin\' A Fool', 1, (error, result) => {
+      if (error) {
+        return;
+      }
+      this.sendMessage(`https://www.youtube.com/watch?v=${result.items[0].id.videoId}`);
     });
   }
 }
@@ -525,42 +565,43 @@ const actions = new Actions();
  * @param {string} args - Additional argument
  */
 export const dispatch = (actionName, message, args) => {
+  actions.refresh(message);
   switch (actionName) {
     case HELP:
-      actions.help(message);
+      actions.help();
       break;
     case ERROR:
-      actions.error(message);
+      actions.error();
       break;
     case SCORES_OR_SCHEDULES:
-      actions.scoresOrSchedules(message);
+      actions.scoresOrSchedules();
       break;
     case STANDINGS:
-      actions.standings(message, false, false);
+      actions.standings(false, false);
       break;
     case E_STANDINGS:
-      actions.standings(message, true, false);
+      actions.standings(true, false);
       break;
     case W_STANDINGS:
-      actions.standings(message, false, true);
+      actions.standings(false, true);
       break;
     case BOX_SCORE:
-      actions.boxScore(message, args);
+      actions.boxScore(args);
       break;
     case TEAMS:
-      actions.showTeams(message);
+      actions.showTeams();
       break;
     case PLAYER:
-      actions.player(message, args);
+      actions.player(args);
       break;
     case TEAM:
-      actions.team(message, args);
+      actions.team(args);
       break;
     case REMIND:
-      actions.remind(message, args);
+      actions.remind(args);
       break;
     case HIGHLIGHT:
-      actions.highlight(message, args);
+      actions.shaq();
       break;
     default:
       break;
