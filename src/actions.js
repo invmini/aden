@@ -530,15 +530,6 @@ YouTube video of the selected game highlight`;
       this.sendMessage(`${intro}https://www.youtube.com/watch?v=${result.items[0].id.videoId}`);
     });
   }
-
-  shaq() {
-    this.youtube.search('Shaqtin\' A Fool', 1, (error, result) => {
-      if (error) {
-        return;
-      }
-      this.sendMessage(`https://www.youtube.com/watch?v=${result.items[0].id.videoId}`);
-    });
-  }
 }
 
 // Action constants
@@ -601,7 +592,7 @@ export const dispatch = (actionName, message, args) => {
       actions.remind(args);
       break;
     case HIGHLIGHT:
-      actions.shaq();
+      actions.highlight(args);
       break;
     default:
       break;
