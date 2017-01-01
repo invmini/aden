@@ -28,7 +28,6 @@ class Actions {
     // Setup YouTube API
     this.youtube = new YouTube();
     this.youtube.addParam('channelId', 'UCRUQQrm8_l3CVYxfq2kPMlg');
-    this.youtube.addParam('order', 'date');
     this.youtube.setKey(config.YOUTUBE_API_KEY);
 
     // Setup current message
@@ -42,18 +41,9 @@ class Actions {
     this.message = message;
   }
 
-  sendMessage(payload, isReply = false) {
-    if (typeof payload === 'string') {
-      Logger.info(`Outgoing message: ${payload}`);
-      if (isReply) {
-        this.message.reply(payload);
-      } else {
-        this.message.channel.sendMessage(payload);
-      }
-    } else {
-      // Do all the mongo/redis stuff here
-
-    }
+  sendMessage(payload) {
+    Logger.info(`Outgoing message: ${payload}`);
+    this.message.channel.sendMessage(payload);
   }
 
   // utility functions
@@ -121,7 +111,7 @@ class Actions {
   setGameReminder(gameId) {
     const home = teams[schedules[gameId].home];
     const away = teams[schedules[gameId].away];
-    this.sendMessage(`Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:`, true);
+    this.sendMessage(`@here Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:\nType \`/nba bs ${home.nickname}\` or \`/nba bs ${away.nickname}\` to view live box score`);
   }
 
   getGameStatus(game) {
@@ -351,7 +341,10 @@ YouTube video of the selected game highlight`;
         }
       });
       const nbaBoxScoreLink = `https://watch.nba.com/game/${moment(schedules[gameId].date).format('YYYYMMDD').toString()}/${teams[vTeamId].tricode}${teams[hTeamId].tricode}`;
-      const outro = `For a more detailed boxscore, you can visit ${nbaBoxScoreLink}\nFor a highlight video, type \`/nba hl ${gameId}\``;
+      let outro = `For a more detailed boxscore, you can visit ${nbaBoxScoreLink}\n`;
+      if (totalPeriod >= 3) {
+        outro += `For a highlight video, type \`/nba hl ${gameId}\``;
+      }
       this.sendMessage(`\`${teams[vTeamId].name} Box Scores\n${vTeamTable.toString()}\``);
       this.sendMessage(`\`${teams[hTeamId].name} Box Scores\n${hTeamTable.toString()}\`\n\n${outro}`);
     }).catch(err => {
@@ -488,7 +481,7 @@ YouTube video of the selected game highlight`;
     const home = teams[schedules[gameId].home];
     const away = teams[schedules[gameId].away];
     const howLong = moment(schedules[gameId].date).fromNow();
-    this.sendMessage(`Game reminder set! ${home.name} V.S. ${away.name} is starting ${howLong}:ok_hand:`, true);
+    this.sendMessage(`Game reminder set! ${home.name} V.S. ${away.name} is starting ${howLong}:ok_hand:`);
   }
 
   /**
