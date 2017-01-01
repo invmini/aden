@@ -1,14 +1,18 @@
+<div align="center">
+<img width="136" src="https://lh3.googleusercontent.com/gfS15xuST6IP3e-ZDy63XLNl-ZxxTqo-NxXuIy5dKWQIjX_8s_T0Sz1mgTc0-78juBc=w170" alt="github api logo" />
+</div>
+
+# Project Aden
+
 [![Build Status](https://travis-ci.org/chewong/Aden.svg?branch=master)](https://travis-ci.org/chewong/Aden)
 ![Heroku](https://camo.githubusercontent.com/8b13ffa419f97fb10bcac89231a26f1a43e43b58/687474703a2f2f6865726f6b752d62616467652e6865726f6b756170702e636f6d2f3f6170703d616e67756c61726a732d63727970746f267374796c653d666c6174267376673d3126726f6f743d696e6465782e68746d6c)
 [![Discord](https://discordapp.com/api/guilds/196084053936439297/widget.png)]()
 
-# Project Aden
-
 [Click here to add Aden to your server](https://discordapp.com/oauth2/authorize?&client_id=260981903132327936&scope=bot)
 
-Discord Chat Bot with Real Time NBA Scores, Schdules, and Stats!
+Discord Chat Bot with Real Time NBA boxscores, schdules, stats, reminder and more!
 
-![](https://zippy.gfycat.com/MemorableRectangularAgouti.gif)
+![Demo](https://fat.gfycat.com/ThatUnequaledBats.gif)
 
 ## Documentation
 ```/nba live```
@@ -56,6 +60,10 @@ Display the box score of the chosen game (e.g. /nba bs raptors, /nba bs 00216004
 Set a reminder to a future game
 
 (Note: If nickname is used, the upcoming game will be reminded)
+
+```/nba hl [nickname|game id]```
+
+YouTube video of the selected game highlight
 
 ## Development
 ```

@@ -1,17 +1,19 @@
 import Discord from 'discord.js';
 import * as actions from './actions';
 import config from './config';
+import Logger from 'js-logger';
 
 const dispatch = actions.dispatch;
-
 const client = new Discord.Client();
+
+Logger.useDefaults();
 
 const onReceiveMessage = message => {
   if (message.author.bot || message.content.substring(0, 4) !== '/nba') {
     return;
   }
 
-  console.log(`Incoming message: ${message.content}`);
+  Logger.info(`Incoming message: ${message.content}`);
 
   if (message.content.trim() === '/nba') {
     dispatch(actions.HELP, message);
@@ -68,7 +70,7 @@ const onReceiveMessage = message => {
 };
 
 const onReady = () => {
-  console.log('ready');
+  Logger.info(`Project Aden: Activated`);
   client.user.setGame('NBA');
 };
 
