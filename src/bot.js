@@ -2,9 +2,12 @@ import Discord from 'discord.js';
 import * as actions from './actions';
 import config from './config';
 import Logger from 'js-logger';
+import _ from 'lodash';
+import redis from 'redis';
 
 const dispatch = actions.dispatch;
 const client = new Discord.Client();
+const cache = redis.createClient(process.env.REDIS_URL || config.REDIS_URL);
 
 Logger.useDefaults();
 
@@ -72,6 +75,24 @@ const onReceiveMessage = message => {
 const onReady = () => {
   Logger.info(`Project Aden: Activated`);
   client.user.setGame('NBA');
+
+  // Re-setup game reminder because heroku
+  // restarts the bot every 24 hours
+  _.each(client.channels.keyArray(), key => {
+    cache.keys(`${key}-*`, (err, cacheKeys) => {
+      if (err || cacheKeys.length === 0) return;
+      _.each(cacheKeys, cacheKey => {
+        const gameId = cacheKey.split('-')[1];
+        const message = {
+          id: key,
+          channel: client.channels.find('id', key),
+        };
+        Logger.info(`Aden restarted: setting game reminder ${gameId}`);
+        dispatch(actions.SET_REMINDER, message, gameId);
+      });
+    });
+  });
+  cache.quit();
 };
 
 client.on('ready', onReady);

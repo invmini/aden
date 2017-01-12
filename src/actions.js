@@ -10,9 +10,14 @@ import AsciiTable from 'ascii-table';
 import Matcher from 'did-you-mean';
 import YouTube from 'youtube-node';
 import Logger from 'js-logger';
+import redis from 'redis';
 
 class Actions {
   constructor() {
+    // Setup Logger
+    Logger.useDefaults();
+
+    // Base URL for API endpoints
     this.baseUrl = 'http://data.nba.net/data/10s/prod/v1';
 
     // Setup matcher
@@ -33,8 +38,11 @@ class Actions {
     // Setup current message
     this.message = undefined;
 
-    // Setup Logger
-    Logger.useDefaults();
+    // Setup Redis cache
+    this.cache = redis.createClient(process.env.REDIS_URL || config.REDIS_URL);
+    this.cache.on('connect', () => {
+      Logger.info('Connected to Redis');
+    });
   }
 
   refresh(message) {
@@ -108,10 +116,24 @@ class Actions {
     return gameId;
   }
 
-  setGameReminder(gameId) {
+  remindGame(gameId) {
     const home = teams[schedules[gameId].home];
     const away = teams[schedules[gameId].away];
     this.sendMessage(`@here Reminder: ${home.name} V.S. ${away.name} is starting soon! :basketball:\nType \`/nba bs ${home.nickname}\` or \`/nba bs ${away.nickname}\` to view live box score`);
+  }
+
+  setGameReminder(gameId) {
+    const key = `${this.message.channel.id}-${gameId}`;
+    const expireInSecond = moment(schedules[gameId].date).diff(moment(), 'second');
+    this.cache.get(key, (err, res) => {
+      if (err) return;
+      if (!res) {
+        this.cache.set(key, 'remind');
+        this.cache.expire(key, expireInSecond);
+      }
+    });
+    Logger.info(`Reminder Set!`);
+    setTimeout(() => this.remindGame(gameId), expireInSecond * 1000);
   }
 
   getGameStatus(game) {
@@ -476,8 +498,9 @@ YouTube video of the selected game highlight`;
       this.sendMessage(`You need a time machine to set a reminder in the past. Type \`/nba bs ${gameId}\` to check out the boxscore!`);
       return;
     }
-    // Use setTimeout to set a reminder
-    setTimeout(() => this.setGameReminder(gameId), moment(schedules[gameId].date).diff(moment(), 'second') * 1000);
+
+    // Set game reminder here
+    this.setGameReminder(gameId);
     const home = teams[schedules[gameId].home];
     const away = teams[schedules[gameId].away];
     const howLong = moment(schedules[gameId].date).fromNow();
@@ -537,6 +560,7 @@ export const TEAMS = 'TEAMS';
 export const PLAYER = 'PLAYER';
 export const TEAM = 'TEAM';
 export const REMIND = 'REMIND';
+export const SET_REMINDER = 'SET_REMINDER';
 export const HIGHLIGHT = 'HIGHLIGHT';
 
 // Create an action object
@@ -583,6 +607,9 @@ export const dispatch = (actionName, message, args) => {
       break;
     case REMIND:
       actions.remind(args);
+      break;
+    case SET_REMINDER:
+      actions.setGameReminder(args);
       break;
     case HIGHLIGHT:
       actions.highlight(args);
