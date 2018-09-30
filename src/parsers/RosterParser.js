@@ -12,7 +12,7 @@ _.each(teams, team => {
   if (nickname === '76ers') {
     nickname = 'sixers';
   }
-  axios.get(`http://data.nba.net/data/10s/prod/v1/2017/teams/${nickname}/roster.json`).then(res => {
+  axios.get(`http://data.nba.net/data/10s/prod/v1/2018/teams/${nickname}/roster.json`).then(res => {
     _.each(res.data.league.standard.players, player => {
       if (data[nickname]) {
         data[nickname].push(player.personId);
