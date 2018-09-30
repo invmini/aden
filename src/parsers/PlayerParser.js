@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const axios = require('axios');
 
-axios.get('http://data.nba.net/data/10s/prod/v1/2017/players.json').then(res => {
+axios.get('http://data.nba.net/data/10s/prod/v1/2018/players.json').then(res => {
   const data = {};
   _.each(res.data.league.standard, player => {
     if (player.jersey && player.pos && player.teamId) {
